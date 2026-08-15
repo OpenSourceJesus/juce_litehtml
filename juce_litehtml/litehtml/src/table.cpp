@@ -180,11 +180,11 @@ void litehtml::table_grid::distribute_width( int width, int start, int end, tabl
 			add = round_f( (float) width * ((float) m_columns[col].max_width / (float) cols_width) );
 		}
 		added_width += add;
-		acc->get(m_columns[col]) += add;
+		*acc->get(m_columns[col]) += add;
 	}
 	if(added_width < width)
 	{
-		acc->get(m_columns[start]) += width - added_width;
+		*acc->get(m_columns[start]) += width - added_width;
 	}
 }
 
@@ -578,17 +578,17 @@ void litehtml::table_grid::calc_rows_height(int blockHeight, int borderSpacingY)
 
 //////////////////////////////////////////////////////////////////////////
 
-int& litehtml::table_column_accessor_max_width::get( table_column& col )
+int* litehtml::table_column_accessor_max_width::get( table_column& col )
 {
-	return col.max_width;
+	return &col.max_width;
 }
 
-int& litehtml::table_column_accessor_min_width::get( table_column& col )
+int* litehtml::table_column_accessor_min_width::get( table_column& col )
 {
-	return col.min_width;
+	return &col.min_width;
 }
 
-int& litehtml::table_column_accessor_width::get( table_column& col )
+int* litehtml::table_column_accessor_width::get( table_column& col )
 {
-	return col.width;
+	return &col.width;
 }

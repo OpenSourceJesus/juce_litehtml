@@ -81,7 +81,7 @@ static JSValue js_createElement(JSContext* ctx, JSValueConst self, int argc, JSV
 		if (element != nullptr)
 		{
 			document->stash_element(element);
-			return JS_DupValue(ctx, element->js_value());
+			return JS_DupValue(ctx, *element->js_value());
 		}
 	}
 
@@ -110,7 +110,7 @@ static JSValue js_createTextNode(JSContext* ctx, JSValueConst self, int argc, JS
 		}
 
 		document->stash_element(textNode);
-		return JS_DupValue(ctx, textNode->js_value());
+		return JS_DupValue(ctx, *textNode->js_value());
 	}
 
 	return JS_NULL;
@@ -132,7 +132,7 @@ static JSValue js_getElementById(JSContext* ctx, JSValueConst self, int argc, JS
 		JS_FreeCString(ctx, id);
 
 		if (element != nullptr)
-			return JS_DupValue(ctx, element->js_value());
+			return JS_DupValue(ctx, *element->js_value());
 	}
 
 	return JS_NULL;
@@ -178,7 +178,7 @@ litehtml::document::ptr litehtml::document::createFromUTF8(const char* str, lite
 		doc->m_root->set_pseudo_class(_t("root"), true);
 
 		// apply master CSS
-		doc->m_root->apply_stylesheet(ctx->master_css());
+		doc->m_root->apply_stylesheet(*ctx->master_css());
 
 		// parse elements attributes
 		doc->m_root->parse_attributes();
@@ -1055,7 +1055,7 @@ void litehtml::document::append_children_from_utf8(element& parent, const char* 
 		parent.appendChild(child);
 
 		// apply master CSS
-		child->apply_stylesheet(m_context->master_css());
+		child->apply_stylesheet(*m_context->master_css());
 
 		// parse elements attributes
 		child->parse_attributes();

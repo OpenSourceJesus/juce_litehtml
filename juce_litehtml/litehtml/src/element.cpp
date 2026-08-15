@@ -134,7 +134,7 @@ static JSValue js_getChildren(JSContext* ctx, JSValueConst self)
 			auto child { element->get_child(i) };
 
 			if (!child->is_comment())
-				JS_SetPropertyUint32 (ctx, jsArr, i, JS_DupValue(ctx, child->js_value()));
+				JS_SetPropertyUint32 (ctx, jsArr, i, JS_DupValue(ctx, *child->js_value()));
 		}
 
 		return jsArr;
