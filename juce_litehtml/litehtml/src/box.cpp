@@ -153,14 +153,16 @@ void litehtml::line_box::finish(bool last_box)
 		return;
 	}
 
-	for(auto i = m_items.rbegin(); i != m_items.rend(); i++)
+	/* crust: reverse iterator -> descending index. The C++ subset has no
+	   iterator story; a container is walked with size() and operator[]. */
+	for(int i = (int) m_items.size() - 1; i >= 0; i--)
 	{
-		if((*i)->is_white_space() || (*i)->is_break())
+		if(m_items[i]->is_white_space() || m_items[i]->is_break())
 		{
-			if(!(*i)->m_skip)
+			if(!m_items[i]->m_skip)
 			{
-				(*i)->m_skip = true;
-				m_width -= (*i)->width();
+				m_items[i]->m_skip = true;
+				m_width -= m_items[i]->width();
 			}
 		} else
 		{
@@ -318,9 +320,10 @@ bool litehtml::line_box::can_hold(const element::ptr &el, white_space ws) const
 bool litehtml::line_box::have_last_space()  const
 {
 	bool ret = false;
-	for (auto i = m_items.rbegin(); i != m_items.rend() && !ret; i++)
+	/* crust: reverse iterator -> descending index. */
+	for (int i = (int) m_items.size() - 1; i >= 0 && !ret; i--)
 	{
-		if((*i)->is_white_space() || (*i)->is_break())
+		if(m_items[i]->is_white_space() || m_items[i]->is_break())
 		{
 			ret = true;
 		} else
@@ -334,9 +337,10 @@ bool litehtml::line_box::have_last_space()  const
 bool litehtml::line_box::is_empty() const
 {
 	if(m_items.empty()) return true;
-	for (auto i = m_items.rbegin(); i != m_items.rend(); i++)
+	/* crust: reverse iterator -> descending index. */
+	for (int i = (int) m_items.size() - 1; i >= 0; i--)
 	{
-		if(!(*i)->m_skip || (*i)->is_break())
+		if(!m_items[i]->m_skip || m_items[i]->is_break())
 		{
 			return false;
 		}
@@ -351,7 +355,22 @@ int litehtml::line_box::baseline() const
 
 void litehtml::line_box::get_elements( elements_vector& els )
 {
-	els.insert(els.begin(), m_items.begin(), m_items.end());
+	/* crust: no range insert in the subset's vector. Prepended by
+	   rebuilding, which is what insert(els.begin(), ..) meant. */
+	elements_vector rebuilt;
+	for(size_t k = 0; k < m_items.size(); k++)
+	{
+		rebuilt.push_back(m_items[k]);
+	}
+	for(size_t k = 0; k < els.size(); k++)
+	{
+		rebuilt.push_back(els[k]);
+	}
+	els.clear();
+	for(size_t k = 0; k < rebuilt.size(); k++)
+	{
+		els.push_back(rebuilt[k]);
+	}
 }
 
 int litehtml::line_box::top_margin() const
@@ -399,10 +418,12 @@ void litehtml::line_box::new_width( int left, int right, elements_vector& els )
 		m_box_left	= left;
 		m_box_right	= right;
 		m_width = 0;
-		auto remove_begin = m_items.end();
-		for (auto i = m_items.begin() + 1; i != m_items.end(); i++)
+		/* crust: iterators -> indices. `remove_begin` is an index, with
+		   size() standing for the old end() sentinel. */
+		size_t remove_begin = m_items.size();
+		for (size_t i = 1; i < m_items.size(); i++)
 		{
-			element::ptr el = (*i);
+			element::ptr el = m_items[i];
 
 			if(!el->m_skip)
 			{
@@ -417,10 +438,30 @@ void litehtml::line_box::new_width( int left, int right, elements_vector& els )
 				}
 			}
 		}
-		if(remove_begin != m_items.end())
+		if(remove_begin != m_items.size())
 		{
-			els.insert(els.begin(), remove_begin, m_items.end());
-			m_items.erase(remove_begin, m_items.end());
+			/* crust: the subset's vector has no range insert or erase.
+			   Rebuilt rather than spliced, and the tail is still put in
+			   front of whatever `els` already held, which is what
+			   `insert(els.begin(), ..)` meant. */
+			elements_vector rebuilt;
+			for(size_t k = remove_begin; k < m_items.size(); k++)
+			{
+				rebuilt.push_back(m_items[k]);
+			}
+			for(size_t k = 0; k < els.size(); k++)
+			{
+				rebuilt.push_back(els[k]);
+			}
+			els.clear();
+			for(size_t k = 0; k < rebuilt.size(); k++)
+			{
+				els.push_back(rebuilt[k]);
+			}
+			while(m_items.size() > remove_begin)
+			{
+				m_items.pop_back();
+			}
 
 			for(const auto& el : els)
 			{
