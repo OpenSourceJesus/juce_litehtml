@@ -63,7 +63,8 @@ namespace litehtml
 		static void register_js_prototype(JSContext* ctx, JSValue prototype);
 
 		// returns refer to m_pos member;
-		position&					get_position();
+		/* crust: reference return -> pointer. */
+		position*					get_position();
 
 		int							left()						const;
 		int							right()						const;
@@ -422,9 +423,9 @@ namespace litehtml
 		return !(m_skip || get_display() == display_none || get_visibility() != visibility_visible);
 	}
 
-	inline position& litehtml::element::get_position()
+	inline position* litehtml::element::get_position()
 	{
-		return m_pos;
+		return &m_pos;
 	}
 
 	inline std::shared_ptr<document> element::get_document() const
