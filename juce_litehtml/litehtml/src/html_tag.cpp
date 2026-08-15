@@ -173,7 +173,7 @@ void litehtml::html_tag::apply_stylesheet( const litehtml::css& stylesheet )
 
 		if(apply != select_no_match)
 		{
-			used_selector::ptr us = std::unique_ptr<used_selector>(new used_selector(sel, false));
+			used_selector::ptr us = std::shared_ptr<used_selector>(new used_selector(sel, false));
 
 			if(sel->is_media_valid())
 			{
@@ -222,7 +222,8 @@ void litehtml::html_tag::apply_stylesheet( const litehtml::css& stylesheet )
 					us->m_used = true;
 				}
 			}
-			m_used_styles.push_back(std::move(us));
+			/* crust: no move; the shared_ptr copy is the handover. */
+			m_used_styles.push_back(us);
 		}
 	}
 
