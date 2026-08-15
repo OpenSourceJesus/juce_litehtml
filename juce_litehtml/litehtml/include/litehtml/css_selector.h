@@ -261,7 +261,13 @@ namespace litehtml
 	class used_selector
 	{
 	public:
-		typedef std::unique_ptr<used_selector>	ptr;
+		/* crust: unique_ptr is move-only, and the C++ subset has no
+		   moves -- its Rule of Three refusal *is* unique_ptr's move-only
+		   semantics, so a vector of them cannot copy an element into
+		   place. shared_ptr is copyable and the ownership here is still
+		   sole: m_used_styles is private and nothing takes an element
+		   out of it. */
+		typedef std::shared_ptr<used_selector>	ptr;
 		typedef std::vector<used_selector::ptr>	vector;
 
 		css_selector::ptr	m_selector;
