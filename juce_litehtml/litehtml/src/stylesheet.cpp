@@ -4,7 +4,7 @@
 #include "document.h"
 
 
-void litehtml::css::parse_stylesheet(const tchar_t* str, const tchar_t* baseurl, const std::shared_ptr<document>& doc, const media_query_list::ptr& media)
+void litehtml::css::parse_stylesheet(const tchar_t* str, const tchar_t* baseurl, const std::shared_ptr<document>& doc, const std::shared_ptr<media_query_list>& media)
 {
 	tstring text = str;
 
@@ -98,7 +98,7 @@ void litehtml::css::parse_css_url( const tstring& str, tstring& url )
 	}
 }
 
-bool litehtml::css::parse_selectors( const tstring& txt, const tstring& styles, const media_query_list::ptr& media, const tstring& baseurl )
+bool litehtml::css::parse_selectors( const tstring& txt, const tstring& styles, const std::shared_ptr<media_query_list>& media, const tstring& baseurl )
 {
 	tstring selector = txt;
 	trim(selector);
@@ -109,7 +109,7 @@ bool litehtml::css::parse_selectors( const tstring& txt, const tstring& styles, 
 
 	for(auto & token : tokens)
 	{
-		css_selector::ptr new_selector = std::make_shared<css_selector>(media, baseurl);
+		std::shared_ptr<css_selector> new_selector = std::make_shared<css_selector>(media, baseurl);
         new_selector->m_style = styles;
 		trim(token);
 		if(new_selector->parse(token))
@@ -126,14 +126,14 @@ bool litehtml::css::parse_selectors( const tstring& txt, const tstring& styles, 
 void litehtml::css::sort_selectors()
 {
 	std::sort(m_selectors.begin(), m_selectors.end(),
-		 [](const css_selector::ptr& v1, const css_selector::ptr& v2)
+		 [](const std::shared_ptr<css_selector>& v1, const std::shared_ptr<css_selector>& v2)
 		 {
 			 return (*v1) < (*v2);
 		 }
 	);
 }
 
-void litehtml::css::parse_atrule(const tstring& text, const tchar_t* baseurl, const std::shared_ptr<document>& doc, const media_query_list::ptr& media)
+void litehtml::css::parse_atrule(const tstring& text, const tchar_t* baseurl, const std::shared_ptr<document>& doc, const std::shared_ptr<media_query_list>& media)
 {
 	if(text.substr(0, 7) == _t("@import"))
 	{
@@ -170,7 +170,7 @@ void litehtml::css::parse_atrule(const tstring& text, const tchar_t* baseurl, co
 					doc_cont->import_css(css_text, url, css_baseurl);
 					if(!css_text.empty())
 					{
-						media_query_list::ptr new_media = media;
+						std::shared_ptr<media_query_list> new_media = media;
 						if(!tokens.empty())
 						{
 							tstring media_str;
@@ -201,7 +201,7 @@ void litehtml::css::parse_atrule(const tstring& text, const tchar_t* baseurl, co
 		{
 			tstring media_type = text.substr(6, b1 - 6);
 			trim(media_type);
-			media_query_list::ptr new_media = media_query_list::create_from_string(media_type, doc);
+			std::shared_ptr<media_query_list> new_media = media_query_list::create_from_string(media_type, doc);
 
 			tstring media_style;
 			if(b2 != tstring::npos)

@@ -27,7 +27,7 @@ const litehtml::tchar_t* litehtml::el_text::get_style_property( const tchar_t* n
 {
 	if(inherited)
 	{
-		element::ptr el_parent = parent();
+		std::shared_ptr<litehtml::element> el_parent = parent();
 		if (el_parent)
 		{
 			return el_parent->get_style_property(name, inherited, def);
@@ -66,7 +66,7 @@ void litehtml::el_text::parse_styles(bool is_reparse)
 
 	font_metrics fm;
 	uint_ptr font = 0;
-	element::ptr el_parent = parent();
+	std::shared_ptr<litehtml::element> el_parent = parent();
 	if (el_parent)
 	{
 		font = el_parent->get_font(&fm);
@@ -85,7 +85,7 @@ void litehtml::el_text::parse_styles(bool is_reparse)
 
 int litehtml::el_text::get_base_line()
 {
-	element::ptr el_parent = parent();
+	std::shared_ptr<litehtml::element> el_parent = parent();
 	if (el_parent)
 	{
 		return el_parent->get_base_line();
@@ -106,10 +106,10 @@ void litehtml::el_text::draw( uint_ptr hdc, int x, int y, const position* clip )
 
 	if(pos.does_intersect(clip))
 	{
-		element::ptr el_parent = parent();
+		std::shared_ptr<litehtml::element> el_parent = parent();
 		if (el_parent)
 		{
-			document::ptr doc = get_document();
+			std::shared_ptr<document> doc = get_document();
 
 			uint_ptr font = el_parent->get_font();
 			litehtml::web_color color = el_parent->get_color(_t("color"), true, doc->get_def_color());
@@ -120,7 +120,7 @@ void litehtml::el_text::draw( uint_ptr hdc, int x, int y, const position* clip )
 
 int litehtml::el_text::line_height() const
 {
-	element::ptr el_parent = parent();
+	std::shared_ptr<litehtml::element> el_parent = parent();
 	if (el_parent)
 	{
 		return el_parent->line_height();
@@ -130,7 +130,7 @@ int litehtml::el_text::line_height() const
 
 litehtml::uint_ptr litehtml::el_text::get_font( font_metrics* fm /*= 0*/ )
 {
-	element::ptr el_parent = parent();
+	std::shared_ptr<litehtml::element> el_parent = parent();
 	if (el_parent)
 	{
 		return el_parent->get_font(fm);
@@ -145,14 +145,14 @@ litehtml::style_display litehtml::el_text::get_display() const
 
 litehtml::white_space litehtml::el_text::get_white_space() const
 {
-	element::ptr el_parent = parent();
+	std::shared_ptr<litehtml::element> el_parent = parent();
 	if (el_parent) return el_parent->get_white_space();
 	return white_space_normal;
 }
 
 litehtml::element_position litehtml::el_text::get_element_position(css_offsets* offsets) const
 {
-	element::ptr p = parent();
+	std::shared_ptr<litehtml::element> p = parent();
 	while(p && p->get_display() == display_inline)
 	{
 		if(p->get_element_position() == element_position_relative)
@@ -170,7 +170,7 @@ litehtml::element_position litehtml::el_text::get_element_position(css_offsets* 
 
 litehtml::css_offsets litehtml::el_text::get_css_offsets() const
 {
-	element::ptr p = parent();
+	std::shared_ptr<litehtml::element> p = parent();
 	while(p && p->get_display() == display_inline)
 	{
 		if(p->get_element_position() == element_position_relative)

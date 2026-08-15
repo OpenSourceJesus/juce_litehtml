@@ -45,9 +45,9 @@ JSValue litehtml::context::js_eval(const litehtml::tstring& script)
 
 void litehtml::context::load_master_stylesheet( const tchar_t* str )
 {
-	media_query_list::ptr media;
+	std::shared_ptr<media_query_list> media;
 
-	m_master_css.parse_stylesheet(str, nullptr, std::shared_ptr<litehtml::document>(), media_query_list::ptr());
+	m_master_css.parse_stylesheet(str, nullptr, std::shared_ptr<litehtml::document>(), std::shared_ptr<media_query_list>());
 	m_master_css.sort_selectors();
 }
 

@@ -59,7 +59,7 @@ litehtml::document::~document()
 //----------------------------------------------------------
 // JavaScript interface methods
 
-static litehtml::document::ptr js_get_document(JSContext* ctx, JSValueConst self)
+static std::shared_ptr<litehtml::document> js_get_document(JSContext* ctx, JSValueConst self)
 {
 	if (auto* ref { litehtml::context::js_get_object_ref<litehtml::document>(self) })
 		return ref->document->shared_from_this();
@@ -96,7 +96,7 @@ static JSValue js_createTextNode(JSContext* ctx, JSValueConst self, int argc, JS
 	if (auto document { js_get_document(ctx, self) })
 	{
 		litehtml::tchar_t* text { nullptr };
-		litehtml::element::ptr textNode { nullptr };
+		std::shared_ptr<litehtml::element> textNode { nullptr };
 
 		if (argc > 0)
 		{
@@ -123,7 +123,7 @@ static JSValue js_getElementById(JSContext* ctx, JSValueConst self, int argc, JS
 
 	if (auto document { js_get_document(ctx, self) })
 	{
-		litehtml::element::ptr element { nullptr };
+		std::shared_ptr<litehtml::element> element { nullptr };
 		const auto* id { JS_ToCString(ctx, args[0]) };
 
 		if (document->root())
@@ -147,18 +147,18 @@ void litehtml::document::register_js_prototype(JSContext* ctx, JSValue prototype
 
 //----------------------------------------------------------
 
-litehtml::document::ptr litehtml::document::createFromString( const tchar_t* str, litehtml::document_container* objPainter, litehtml::context* ctx, litehtml::css* user_styles)
+std::shared_ptr<litehtml::document> litehtml::document::createFromString( const tchar_t* str, litehtml::document_container* objPainter, litehtml::context* ctx, litehtml::css* user_styles)
 {
 	return createFromUTF8(litehtml_to_utf8(str), objPainter, ctx, user_styles);
 }
 
-litehtml::document::ptr litehtml::document::createFromUTF8(const char* str, litehtml::document_container* objPainter, litehtml::context* ctx, litehtml::css* user_styles)
+std::shared_ptr<litehtml::document> litehtml::document::createFromUTF8(const char* str, litehtml::document_container* objPainter, litehtml::context* ctx, litehtml::css* user_styles)
 {
 	// parse document into GumboOutput
 	GumboOutput* output = gumbo_parse((const char*) str);
 
 	// Create litehtml::document
-	litehtml::document::ptr doc = std::make_shared<litehtml::document>(objPainter, ctx);
+	std::shared_ptr<litehtml::document> doc = std::make_shared<litehtml::document>(objPainter, ctx);
 
 	// Create litehtml::elements.
 	elements_vector root_elements;
@@ -184,7 +184,7 @@ litehtml::document::ptr litehtml::document::createFromUTF8(const char* str, lite
 		doc->m_root->parse_attributes();
 
 		// parse style sheets linked in document
-		media_query_list::ptr media;
+		std::shared_ptr<media_query_list> media;
 		for (const auto& css : doc->m_css)
 		{
 			if (!css.media.empty())
@@ -486,7 +486,7 @@ bool litehtml::document::on_mouse_over( int x, int y, int client_x, int client_y
 		return false;
 	}
 
-	element::ptr over_el = m_root->get_element_by_point(x, y, client_x, client_y);
+	std::shared_ptr<litehtml::element> over_el = m_root->get_element_by_point(x, y, client_x, client_y);
 
 	bool state_was_changed = false;
 
@@ -545,7 +545,7 @@ bool litehtml::document::on_lbutton_down( int x, int y, int client_x, int client
 		return false;
 	}
 
-	element::ptr over_el = m_root->get_element_by_point(x, y, client_x, client_y);
+	std::shared_ptr<litehtml::element> over_el = m_root->get_element_by_point(x, y, client_x, client_y);
 
 	bool state_was_changed = false;
 
@@ -605,10 +605,10 @@ bool litehtml::document::on_lbutton_up( int x, int y, int client_x, int client_y
 	return false;
 }
 
-litehtml::element::ptr litehtml::document::create_element(const tchar_t* tag_name, const string_map& attributes)
+std::shared_ptr<litehtml::element> litehtml::document::create_element(const tchar_t* tag_name, const string_map& attributes)
 {
-	element::ptr newTag;
-	document::ptr this_doc = shared_from_this();
+	std::shared_ptr<litehtml::element> newTag;
+	std::shared_ptr<document> this_doc = shared_from_this();
 	if(m_container)
 	{
 		newTag = m_container->create_element(tag_name, attributes, this_doc);
@@ -740,7 +740,7 @@ bool litehtml::document::update_media_lists(const media_features& features)
 	return update_styles;
 }
 
-void litehtml::document::add_media_list( const media_query_list::ptr& list )
+void litehtml::document::add_media_list( const std::shared_ptr<media_query_list>& list )
 {
 	if(list)
 	{
@@ -767,7 +767,7 @@ void litehtml::document::create_node(void* gnode, elements_vector& elements, boo
 			}
 
 
-			element::ptr ret;
+			std::shared_ptr<litehtml::element> ret;
 			const char* tag = gumbo_normalized_tagname(node->v.element.tag);
 			if (tag[0])
 			{
@@ -795,7 +795,7 @@ void litehtml::document::create_node(void* gnode, elements_vector& elements, boo
 					child.clear();
 					create_node(static_cast<GumboNode*> (node->v.element.children.data[i]), child, parseTextNode);
 					std::for_each(child.begin(), child.end(),
-						[&ret](element::ptr& el)
+						[&ret](std::shared_ptr<litehtml::element>& el)
 						{
 							ret->appendChild(el);
 						}
@@ -823,14 +823,14 @@ void litehtml::document::create_node(void* gnode, elements_vector& elements, boo
 		break;
 	case GUMBO_NODE_CDATA:
 		{
-			element::ptr ret = std::make_shared<el_cdata>(shared_from_this());
+			std::shared_ptr<litehtml::element> ret = std::make_shared<el_cdata>(shared_from_this());
 			ret->set_data(litehtml_from_utf8(node->v.text.text));
 			elements.push_back(ret);
 		}
 		break;
 	case GUMBO_NODE_COMMENT:
 		{
-			element::ptr ret = std::make_shared<el_comment>(shared_from_this());
+			std::shared_ptr<litehtml::element> ret = std::make_shared<el_comment>(shared_from_this());
 			ret->set_data(litehtml_from_utf8(node->v.text.text));
 			elements.push_back(ret);
 		}
@@ -854,7 +854,7 @@ void litehtml::document::fix_tables_layout()
 	size_t i = 0;
 	while (i < m_tabular_elements.size())
 	{
-		element::ptr el_ptr = m_tabular_elements[i];
+		std::shared_ptr<litehtml::element> el_ptr = m_tabular_elements[i];
 
 		switch (el_ptr->get_display())
 		{
@@ -866,7 +866,7 @@ void litehtml::document::fix_tables_layout()
 		case display_table_row_group:
 		case display_table_header_group:
 			{
-				element::ptr parent = el_ptr->parent();
+				std::shared_ptr<litehtml::element> parent = el_ptr->parent();
 				if (parent)
 				{
 					if (parent->get_display() != display_inline_table)
@@ -893,7 +893,7 @@ void litehtml::document::fix_tables_layout()
 	}
 }
 
-void litehtml::document::fix_table_children(element::ptr& el_ptr, style_display disp, const tchar_t* disp_str)
+void litehtml::document::fix_table_children(std::shared_ptr<litehtml::element>& el_ptr, style_display disp, const tchar_t* disp_str)
 {
 	elements_vector tmp;
 	auto first_iter = el_ptr->m_children.begin();
@@ -901,12 +901,12 @@ void litehtml::document::fix_table_children(element::ptr& el_ptr, style_display 
 
 	auto flush_elements = [&]()
 	{
-		element::ptr annon_tag = std::make_shared<html_tag>(shared_from_this());
+		std::shared_ptr<litehtml::element> annon_tag = std::make_shared<html_tag>(shared_from_this());
 		annon_tag->add_style(tstring(_t("display:")) + disp_str, _t(""));
 		annon_tag->parent(el_ptr);
 		annon_tag->parse_styles();
 		std::for_each(tmp.begin(), tmp.end(),
-			[&annon_tag](element::ptr& el)
+			[&annon_tag](std::shared_ptr<litehtml::element>& el)
 			{
 				annon_tag->appendChild(el);
 			}
@@ -953,14 +953,14 @@ void litehtml::document::fix_table_children(element::ptr& el_ptr, style_display 
 	}
 }
 
-void litehtml::document::fix_table_parent(element::ptr& el_ptr, style_display disp, const tchar_t* disp_str)
+void litehtml::document::fix_table_parent(std::shared_ptr<litehtml::element>& el_ptr, style_display disp, const tchar_t* disp_str)
 {
-	element::ptr parent = el_ptr->parent();
+	std::shared_ptr<litehtml::element> parent = el_ptr->parent();
 
 	if (parent->get_display() != disp)
 	{
 		auto this_element = std::find_if(parent->m_children.begin(), parent->m_children.end(),
-			[&](element::ptr& el)
+			[&](std::shared_ptr<litehtml::element>& el)
 			{
 				if (el == el_ptr)
 				{
@@ -1009,12 +1009,12 @@ void litehtml::document::fix_table_parent(element::ptr& el_ptr, style_display di
 			}
 
 			// extract elements with the same display and wrap them with anonymous object
-			element::ptr annon_tag = std::make_shared<html_tag>(shared_from_this());
+			std::shared_ptr<litehtml::element> annon_tag = std::make_shared<html_tag>(shared_from_this());
 			annon_tag->add_style(tstring(_t("display:")) + disp_str, _t(""));
 			annon_tag->parent(parent);
 			annon_tag->parse_styles();
 			std::for_each(first, last + 1,
-				[&annon_tag](element::ptr& el)
+				[&annon_tag](std::shared_ptr<litehtml::element>& el)
 				{
 					annon_tag->appendChild(el);
 				}
@@ -1076,12 +1076,12 @@ void litehtml::document::append_children_from_utf8(element& parent, const char* 
 	}
 }
 
-void litehtml::document::stash_element(litehtml::element::ptr el)
+void litehtml::document::stash_element(std::shared_ptr<litehtml::element> el)
 {
 	m_stashed_elements.push_back(std::move(el));
 }
 
-void litehtml::document::remove_from_stash(litehtml::element::ptr el)
+void litehtml::document::remove_from_stash(std::shared_ptr<litehtml::element> el)
 {
 	auto it = m_stashed_elements.begin();
 

@@ -2,13 +2,13 @@
 #include "iterators.h"
 #include "html_tag.h"
 
-litehtml::element::ptr litehtml::elements_iterator::next(bool ret_parent)
+std::shared_ptr<litehtml::element> litehtml::elements_iterator::next(bool ret_parent)
 {
 	next_idx();
 
 	while(m_idx < (int) m_el->get_children_count())
 	{
-		element::ptr el = m_el->get_child(m_idx);
+		std::shared_ptr<litehtml::element> el = m_el->get_child(m_idx);
 		if(	el->get_children_count() && m_go_inside && m_go_inside->select(el) )
 		{
 			stack_item si;
@@ -54,7 +54,7 @@ void litehtml::elements_iterator::next_idx()
 //////////////////////////////////////////////////////////////////////////
 
 
-bool litehtml::go_inside_inline::select(const element::ptr& el)
+bool litehtml::go_inside_inline::select(const std::shared_ptr<litehtml::element>& el)
 {
 	if(el->get_display() == display_inline || el->get_display() == display_inline_text)
 	{
@@ -63,7 +63,7 @@ bool litehtml::go_inside_inline::select(const element::ptr& el)
 	return false;
 }
 
-bool litehtml::go_inside_table::select(const element::ptr& el)
+bool litehtml::go_inside_table::select(const std::shared_ptr<litehtml::element>& el)
 {
 	if(	el->get_display() == display_table_row_group ||
 		el->get_display() == display_table_header_group ||
@@ -74,7 +74,7 @@ bool litehtml::go_inside_table::select(const element::ptr& el)
 	return false;
 }
 
-bool litehtml::table_rows_selector::select(const element::ptr& el)
+bool litehtml::table_rows_selector::select(const std::shared_ptr<litehtml::element>& el)
 {
 	if(	el->get_display() == display_table_row)
 	{
@@ -83,7 +83,7 @@ bool litehtml::table_rows_selector::select(const element::ptr& el)
 	return false;
 }
 
-bool litehtml::table_cells_selector::select(const element::ptr& el)
+bool litehtml::table_cells_selector::select(const std::shared_ptr<litehtml::element>& el)
 {
 	if(	el->get_display() == display_table_cell)
 	{

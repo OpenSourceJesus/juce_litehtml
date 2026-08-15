@@ -41,7 +41,7 @@ void litehtml::html_tag::register_js_prototype(JSContext* ctx, JSValue prototype
 	element::register_js_prototype(ctx, prototype);
 }
 
-bool litehtml::html_tag::appendChild(const element::ptr &el)
+bool litehtml::html_tag::appendChild(const std::shared_ptr<litehtml::element> &el)
 {
 	if(el)
 	{
@@ -52,7 +52,7 @@ bool litehtml::html_tag::appendChild(const element::ptr &el)
 	return false;
 }
 
-bool litehtml::html_tag::removeChild(const element::ptr &el)
+bool litehtml::html_tag::removeChild(const std::shared_ptr<litehtml::element> &el)
 {
 	if(el && el->parent() == shared_from_this())
 	{
@@ -110,7 +110,7 @@ const litehtml::tchar_t* litehtml::html_tag::get_attr( const tchar_t* name, cons
 
 litehtml::elements_vector litehtml::html_tag::select_all( const tstring& selector )
 {
-	css_selector sel(media_query_list::ptr(nullptr), _t(""));
+	css_selector sel(std::shared_ptr<media_query_list>(nullptr), _t(""));
 	sel.parse(selector);
 
 	return select_all(sel);
@@ -137,15 +137,15 @@ void litehtml::html_tag::select_all(const css_selector& selector, elements_vecto
 }
 
 
-litehtml::element::ptr litehtml::html_tag::select_one( const tstring& selector )
+std::shared_ptr<litehtml::element> litehtml::html_tag::select_one( const tstring& selector )
 {
-	css_selector sel(media_query_list::ptr(nullptr), _t(""));
+	css_selector sel(std::shared_ptr<media_query_list>(nullptr), _t(""));
 	sel.parse(selector);
 
 	return select_one(sel);
 }
 
-litehtml::element::ptr litehtml::html_tag::select_one( const css_selector& selector )
+std::shared_ptr<litehtml::element> litehtml::html_tag::select_one( const css_selector& selector )
 {
 	if(select(selector))
 	{
@@ -154,7 +154,7 @@ litehtml::element::ptr litehtml::html_tag::select_one( const css_selector& selec
 
 	for(auto& el : m_children)
 	{
-		element::ptr res = el->select_one(selector);
+		std::shared_ptr<litehtml::element> res = el->select_one(selector);
 		if(res)
 		{
 			return res;
@@ -173,7 +173,7 @@ void litehtml::html_tag::apply_stylesheet( const litehtml::css& stylesheet )
 
 		if(apply != select_no_match)
 		{
-			used_selector::ptr us = std::shared_ptr<used_selector>(new used_selector(sel, false));
+			std::shared_ptr<used_selector> us = std::shared_ptr<used_selector>(new used_selector(sel, false));
 
 			if(sel->is_media_valid())
 			{
@@ -183,14 +183,14 @@ void litehtml::html_tag::apply_stylesheet( const litehtml::css& stylesheet )
 					{
 						if(apply & select_match_with_after)
 						{
-							element::ptr el = get_element_after();
+							std::shared_ptr<litehtml::element> el = get_element_after();
 							if(el)
 							{
 								el->add_style(sel->m_style, sel->m_baseurl);
 							}
 						} else if(apply & select_match_with_before)
 						{
-							element::ptr el = get_element_before();
+							std::shared_ptr<litehtml::element> el = get_element_before();
 							if(el)
 							{
 								el->add_style(sel->m_style, sel->m_baseurl);
@@ -204,14 +204,14 @@ void litehtml::html_tag::apply_stylesheet( const litehtml::css& stylesheet )
 					}
 				} else if(apply & select_match_with_after)
 				{
-					element::ptr el = get_element_after();
+					std::shared_ptr<litehtml::element> el = get_element_after();
 					if(el)
 					{
 						el->add_style(sel->m_style, sel->m_baseurl);
 					}
 				} else if(apply & select_match_with_before)
 				{
-					element::ptr el = get_element_before();
+					std::shared_ptr<litehtml::element> el = get_element_before();
 					if(el)
 					{
 						el->add_style(sel->m_style, sel->m_baseurl);
@@ -293,7 +293,7 @@ litehtml::uint_ptr litehtml::html_tag::get_font(font_metrics* fm)
 const litehtml::tchar_t* litehtml::html_tag::get_style_property( const tchar_t* name, bool inherited, const tchar_t* def /*= 0*/ ) const
 {
 	const tchar_t* ret = m_style.get_property(name);
-	element::ptr el_parent = parent();
+	std::shared_ptr<litehtml::element> el_parent = parent();
 	if (el_parent)
 	{
 		if ( ( ret && !t_strcasecmp(ret, _t("inherit")) ) || (!ret && inherited) )
@@ -320,7 +320,7 @@ void litehtml::html_tag::parse_styles(bool is_reparse)
 	}
 
 	init_font();
-	document::ptr doc = get_document();
+	std::shared_ptr<document> doc = get_document();
 
 	m_el_position	= (element_position)	value_index(get_style_property(_t("position"),		false,	_t("static")),		element_position_strings,	element_position_fixed);
 	m_text_align	= (text_align)			value_index(get_style_property(_t("text-align"),	true,	_t("left")),		text_align_strings,			text_align_left);
@@ -570,13 +570,13 @@ void litehtml::html_tag::init()
 
 		elements_iterator row_iter(shared_from_this(), &table_selector, &row_selector);
 
-		element::ptr row = row_iter.next(false);
+		std::shared_ptr<litehtml::element> row = row_iter.next(false);
 		while (row)
 		{
 			m_grid->begin_row(row);
 
 			elements_iterator cell_iter(row, &table_selector, &cell_selector);
-			element::ptr cell = cell_iter.next();
+			std::shared_ptr<litehtml::element> cell = cell_iter.next();
 			while (cell)
 			{
 				m_grid->add_cell(cell);
@@ -610,7 +610,7 @@ int litehtml::html_tag::select(const css_selector& selector, bool apply_pseudo)
 	{
 		return select_no_match;
 	}
-	element::ptr el_parent = parent();
+	std::shared_ptr<litehtml::element> el_parent = parent();
 	if(selector.m_left)
 	{
 		if (!el_parent)
@@ -622,7 +622,7 @@ int litehtml::html_tag::select(const css_selector& selector, bool apply_pseudo)
 		case combinator_descendant:
 			{
 				bool is_pseudo = false;
-				element::ptr res = find_ancestor(*selector.m_left, apply_pseudo, &is_pseudo);
+				std::shared_ptr<litehtml::element> res = find_ancestor(*selector.m_left, apply_pseudo, &is_pseudo);
 				if(!res)
 				{
 					return select_no_match;
@@ -653,7 +653,7 @@ int litehtml::html_tag::select(const css_selector& selector, bool apply_pseudo)
 		case combinator_adjacent_sibling:
 			{
 				bool is_pseudo = false;
-				element::ptr res = el_parent->find_adjacent_sibling(shared_from_this(), *selector.m_left, apply_pseudo, &is_pseudo);
+				std::shared_ptr<litehtml::element> res = el_parent->find_adjacent_sibling(shared_from_this(), *selector.m_left, apply_pseudo, &is_pseudo);
 				if(!res)
 				{
 					return select_no_match;
@@ -669,7 +669,7 @@ int litehtml::html_tag::select(const css_selector& selector, bool apply_pseudo)
 		case combinator_general_sibling:
 			{
 				bool is_pseudo = false;
-				element::ptr res =  el_parent->find_sibling(shared_from_this(), *selector.m_left, apply_pseudo, &is_pseudo);
+				std::shared_ptr<litehtml::element> res =  el_parent->find_sibling(shared_from_this(), *selector.m_left, apply_pseudo, &is_pseudo);
 				if(!res)
 				{
 					return select_no_match;
@@ -700,7 +700,7 @@ int litehtml::html_tag::select(const css_element_selector& selector, bool apply_
 	}
 
 	int res = select_match;
-	element::ptr el_parent = parent();
+	std::shared_ptr<litehtml::element> el_parent = parent();
 
 	for(const auto& attr : selector.m_attrs)
 	{
@@ -933,9 +933,9 @@ int litehtml::html_tag::select(const css_element_selector& selector, bool apply_
 	return res;
 }
 
-litehtml::element::ptr litehtml::html_tag::find_ancestor(const css_selector& selector, bool apply_pseudo, bool* is_pseudo)
+std::shared_ptr<litehtml::element> litehtml::html_tag::find_ancestor(const css_selector& selector, bool apply_pseudo, bool* is_pseudo)
 {
-	element::ptr el_parent = parent();
+	std::shared_ptr<litehtml::element> el_parent = parent();
 	if (!el_parent)
 	{
 		return nullptr;
@@ -1035,7 +1035,7 @@ int litehtml::html_tag::get_floats_height(element_float el_float) const
 
 		return h;
 	}
-	element::ptr el_parent = parent();
+	std::shared_ptr<litehtml::element> el_parent = parent();
 	if (el_parent)
 	{
 		int h = el_parent->get_floats_height(el_float);
@@ -1058,7 +1058,7 @@ int litehtml::html_tag::get_left_floats_height() const
 		}
 		return h;
 	}
-	element::ptr el_parent = parent();
+	std::shared_ptr<litehtml::element> el_parent = parent();
 	if (el_parent)
 	{
 		int h = el_parent->get_left_floats_height();
@@ -1081,7 +1081,7 @@ int litehtml::html_tag::get_right_floats_height() const
 		}
 		return h;
 	}
-	element::ptr el_parent = parent();
+	std::shared_ptr<litehtml::element> el_parent = parent();
 	if (el_parent)
 	{
 		int h = el_parent->get_right_floats_height();
@@ -1114,7 +1114,7 @@ int litehtml::html_tag::get_line_left( int y )
 		m_cache_line_left.set_value(y, w);
 		return w;
 	}
-	element::ptr el_parent = parent();
+	std::shared_ptr<litehtml::element> el_parent = parent();
 	if (el_parent)
 	{
 		int w = el_parent->get_line_left(y + m_pos.y);
@@ -1159,7 +1159,7 @@ int litehtml::html_tag::get_line_right( int y, int def_right )
 		m_cache_line_right.set_value(y, w);
 		return w;
 	}
-	element::ptr el_parent = parent();
+	std::shared_ptr<litehtml::element> el_parent = parent();
 	if (el_parent)
 	{
 		int w = el_parent->get_line_right(y + m_pos.y, def_right + m_pos.x);
@@ -1177,7 +1177,7 @@ void litehtml::html_tag::get_line_left_right( int y, int def_right, int& ln_left
 		ln_right	= get_line_right(y, def_right);
 	} else
 	{
-		element::ptr el_parent = parent();
+		std::shared_ptr<litehtml::element> el_parent = parent();
 		if (el_parent)
 		{
 			el_parent->get_line_left_right(y + m_pos.y, def_right + m_pos.x, ln_left, ln_right);
@@ -1291,7 +1291,7 @@ int litehtml::html_tag::fix_line_width( int max_width, element_float flt )
 	return ret_width;
 }
 
-void litehtml::html_tag::add_float(const element::ptr &el, int x, int y)
+void litehtml::html_tag::add_float(const std::shared_ptr<litehtml::element> &el, int x, int y)
 {
 	if(is_floats_holder())
 	{
@@ -1353,7 +1353,7 @@ void litehtml::html_tag::add_float(const element::ptr &el, int x, int y)
 		}
 	} else
 	{
-		element::ptr el_parent = parent();
+		std::shared_ptr<litehtml::element> el_parent = parent();
 		if (el_parent)
 		{
 			el_parent->add_float(el, x + m_pos.x, y + m_pos.y);
@@ -1424,7 +1424,7 @@ int litehtml::html_tag::find_next_line_top( int top, int width, int def_right )
 		}
 		return new_top;
 	}
-	element::ptr el_parent = parent();
+	std::shared_ptr<litehtml::element> el_parent = parent();
 	if (el_parent)
 	{
 		int new_top = el_parent->find_next_line_top(top + m_pos.y, width, def_right + m_pos.x);
@@ -1549,7 +1549,7 @@ void litehtml::html_tag::parse_background()
 		}
 	}
 
-	document::ptr doc = get_document();
+	std::shared_ptr<document> doc = get_document();
 
 	doc->cvt_units(m_bg.m_position.x,		m_font_size);
 	doc->cvt_units(m_bg.m_position.y,		m_font_size);
@@ -1590,14 +1590,14 @@ void litehtml::html_tag::parse_background()
 	}
 }
 
-void litehtml::html_tag::add_positioned(const element::ptr &el)
+void litehtml::html_tag::add_positioned(const std::shared_ptr<litehtml::element> &el)
 {
 	if (m_el_position != element_position_static || (!have_parent()))
 	{
 		m_positioned.push_back(el);
 	} else
 	{
-		element::ptr el_parent = parent();
+		std::shared_ptr<litehtml::element> el_parent = parent();
 		if (el_parent)
 		{
 			el_parent->add_positioned(el);
@@ -1760,7 +1760,7 @@ bool litehtml::html_tag::on_mouse_over()
 {
 	bool ret = false;
 
-	element::ptr el = shared_from_this();
+	std::shared_ptr<litehtml::element> el = shared_from_this();
 	while(el)
 	{
 		if(el->set_pseudo_class(_t("hover"), true))
@@ -1850,7 +1850,7 @@ bool litehtml::html_tag::on_mouse_leave()
 {
 	bool ret = false;
 
-	element::ptr el = shared_from_this();
+	std::shared_ptr<litehtml::element> el = shared_from_this();
 	while(el)
 	{
 		if(el->set_pseudo_class(_t("hover"), false))
@@ -1871,7 +1871,7 @@ bool litehtml::html_tag::on_lbutton_down()
 {
     bool ret = false;
 
-	element::ptr el = shared_from_this();
+	std::shared_ptr<litehtml::element> el = shared_from_this();
     while (el)
     {
         if (el->set_pseudo_class(_t("active"), true))
@@ -1888,7 +1888,7 @@ bool litehtml::html_tag::on_lbutton_up()
 {
 	bool ret = false;
 
-	element::ptr el = shared_from_this();
+	std::shared_ptr<litehtml::element> el = shared_from_this();
     while (el)
     {
         if (el->set_pseudo_class(_t("active"), false))
@@ -1907,7 +1907,7 @@ void litehtml::html_tag::on_click()
 {
 	if (have_parent())
 	{
-		element::ptr el_parent = parent();
+		std::shared_ptr<litehtml::element> el_parent = parent();
 		if (el_parent)
 		{
 			el_parent->on_click();
@@ -1940,7 +1940,7 @@ void litehtml::html_tag::init_font()
 
 	int parent_sz = 0;
 	int doc_font_size = get_document()->container()->get_default_font_size();
-	element::ptr el_parent = parent();
+	std::shared_ptr<litehtml::element> el_parent = parent();
 	if (el_parent)
 	{
 		parent_sz = el_parent->get_font_size();
@@ -2150,7 +2150,7 @@ void litehtml::html_tag::draw_background( uint_ptr hdc, int x, int y, const posi
 	}
 }
 
-int litehtml::html_tag::render_inline(const element::ptr &container, int max_width)
+int litehtml::html_tag::render_inline(const std::shared_ptr<litehtml::element> &container, int max_width)
 {
 	int ret_width = 0;
 	int rw = 0;
@@ -2197,7 +2197,7 @@ int litehtml::html_tag::render_inline(const element::ptr &container, int max_wid
 	return ret_width;
 }
 
-int litehtml::html_tag::place_element(const element::ptr &el, int max_width)
+int litehtml::html_tag::place_element(const std::shared_ptr<litehtml::element> &el, int max_width)
 {
 	if(el->get_display() == display_none) return 0;
 
@@ -2334,7 +2334,7 @@ int litehtml::html_tag::place_element(const element::ptr &el, int max_width)
 			case display_block:
 				if(el->is_replaced() || el->is_floats_holder())
 				{
-					element::ptr el_parent = el->parent();
+					std::shared_ptr<litehtml::element> el_parent = el->parent();
 					el->m_pos.width = el->get_css_width().calc_percent(line_ctx.right - line_ctx.left);
 					el->m_pos.height = el->get_css_height().calc_percent(el_parent ? el_parent->m_pos.height : 0);
 				}
@@ -2545,7 +2545,7 @@ int litehtml::html_tag::finish_last_box(bool end_of_render)
 	return line_top;
 }
 
-int litehtml::html_tag::new_box(const element::ptr &el, int max_width, line_context& line_ctx)
+int litehtml::html_tag::new_box(const std::shared_ptr<litehtml::element> &el, int max_width, line_context& line_ctx)
 {
 	line_ctx.top = get_cleared_top(el, finish_last_box());
 
@@ -2604,7 +2604,7 @@ int litehtml::html_tag::new_box(const element::ptr &el, int max_width, line_cont
 	return line_ctx.top;
 }
 
-int litehtml::html_tag::get_cleared_top(const element::ptr &el, int line_top) const
+int litehtml::html_tag::get_cleared_top(const std::shared_ptr<litehtml::element> &el, int line_top) const
 {
 	switch(el->get_clear())
 	{
@@ -2675,7 +2675,7 @@ bool litehtml::html_tag::is_floats_holder() const
 	return false;
 }
 
-bool litehtml::html_tag::is_first_child_inline(const element::ptr& el) const
+bool litehtml::html_tag::is_first_child_inline(const std::shared_ptr<litehtml::element>& el) const
 {
 	if(!m_children.empty())
 	{
@@ -2703,7 +2703,7 @@ bool litehtml::html_tag::is_first_child_inline(const element::ptr& el) const
 	return false;
 }
 
-bool litehtml::html_tag::is_last_child_inline(const element::ptr& el)
+bool litehtml::html_tag::is_last_child_inline(const std::shared_ptr<litehtml::element>& el)
 {
 	if(!m_children.empty())
 	{
@@ -2787,7 +2787,7 @@ size_t litehtml::html_tag::get_children_count() const
 	return m_children.size();
 }
 
-litehtml::element::ptr litehtml::html_tag::get_child( int idx ) const
+std::shared_ptr<litehtml::element> litehtml::html_tag::get_child( int idx ) const
 {
 	return m_children[idx];
 }
@@ -3171,7 +3171,7 @@ void litehtml::html_tag::render_positioned(render_type rt)
 				client_y		= wnd_position.top();
 			} else
 			{
-				element::ptr el_parent = el->parent();
+				std::shared_ptr<litehtml::element> el_parent = el->parent();
 				if(el_parent)
 				{
 					parent_height	= el_parent->height();
@@ -3298,8 +3298,8 @@ void litehtml::html_tag::render_positioned(render_type rt)
 			{
 				int offset_x = 0;
 				int offset_y = 0;
-				element::ptr cur_el = el->parent();
-				element::ptr this_el = shared_from_this();
+				std::shared_ptr<litehtml::element> cur_el = el->parent();
+				std::shared_ptr<litehtml::element> this_el = shared_from_this();
 				while(cur_el && cur_el != this_el)
 				{
 					offset_x += cur_el->m_pos.x;
@@ -3330,7 +3330,7 @@ void litehtml::html_tag::render_positioned(render_type rt)
 
 	if(!m_positioned.empty())
 	{
-		std::stable_sort(m_positioned.begin(), m_positioned.end(), [](const litehtml::element::ptr& Left, const litehtml::element::ptr& Right)
+		std::stable_sort(m_positioned.begin(), m_positioned.end(), [](const std::shared_ptr<litehtml::element>& Left, const std::shared_ptr<litehtml::element>& Right)
 		{
 			return (Left->get_zindex() < Right->get_zindex());
 		});
@@ -3385,7 +3385,7 @@ litehtml::overflow litehtml::html_tag::get_overflow() const
 	return m_overflow;
 }
 
-bool litehtml::html_tag::is_nth_child(const element::ptr& el, int num, int off, bool of_type) const
+bool litehtml::html_tag::is_nth_child(const std::shared_ptr<litehtml::element>& el, int num, int off, bool of_type) const
 {
 	int idx = 1;
 	for(const auto& child : m_children)
@@ -3417,7 +3417,7 @@ bool litehtml::html_tag::is_nth_child(const element::ptr& el, int num, int off, 
 	return false;
 }
 
-bool litehtml::html_tag::is_nth_last_child(const element::ptr& el, int num, int off, bool of_type) const
+bool litehtml::html_tag::is_nth_last_child(const std::shared_ptr<litehtml::element>& el, int num, int off, bool of_type) const
 {
 	int idx = 1;
 	for(auto child = m_children.rbegin(); child != m_children.rend(); child++)
@@ -3531,9 +3531,9 @@ void litehtml::html_tag::get_redraw_box(litehtml::position& pos, int x /*= 0*/, 
 	}
 }
 
-litehtml::element::ptr litehtml::html_tag::find_adjacent_sibling( const element::ptr& el, const css_selector& selector, bool apply_pseudo /*= true*/, bool* is_pseudo /*= 0*/ )
+std::shared_ptr<litehtml::element> litehtml::html_tag::find_adjacent_sibling( const std::shared_ptr<litehtml::element>& el, const css_selector& selector, bool apply_pseudo /*= true*/, bool* is_pseudo /*= 0*/ )
 {
-	element::ptr ret;
+	std::shared_ptr<litehtml::element> ret;
 	for(auto& e : m_children)
 	{
 		if(e->get_display() != display_inline_text)
@@ -3568,9 +3568,9 @@ litehtml::element::ptr litehtml::html_tag::find_adjacent_sibling( const element:
 	return nullptr;
 }
 
-litehtml::element::ptr litehtml::html_tag::find_sibling(const element::ptr& el, const css_selector& selector, bool apply_pseudo /*= true*/, bool* is_pseudo /*= 0*/)
+std::shared_ptr<litehtml::element> litehtml::html_tag::find_sibling(const std::shared_ptr<litehtml::element>& el, const css_selector& selector, bool apply_pseudo /*= true*/, bool* is_pseudo /*= 0*/)
 {
-	element::ptr ret = nullptr;
+	std::shared_ptr<litehtml::element> ret = nullptr;
 	for(auto& e : m_children)
 	{
 		if(e->get_display() != display_inline_text)
@@ -3601,7 +3601,7 @@ litehtml::element::ptr litehtml::html_tag::find_sibling(const element::ptr& el, 
 	return nullptr;
 }
 
-bool litehtml::html_tag::is_only_child(const element::ptr& el, bool of_type) const
+bool litehtml::html_tag::is_only_child(const std::shared_ptr<litehtml::element>& el, bool of_type) const
 {
 	int child_count = 0;
 	for(const auto& child : m_children)
@@ -3622,7 +3622,7 @@ bool litehtml::html_tag::is_only_child(const element::ptr& el, bool of_type) con
 	return true;
 }
 
-void litehtml::html_tag::update_floats(int dy, const element::ptr &parent)
+void litehtml::html_tag::update_floats(int dy, const std::shared_ptr<litehtml::element> &parent)
 {
 	if(is_floats_holder())
 	{
@@ -3654,7 +3654,7 @@ void litehtml::html_tag::update_floats(int dy, const element::ptr &parent)
 		}
 	} else
 	{
-		element::ptr el_parent = this->parent();
+		std::shared_ptr<litehtml::element> el_parent = this->parent();
 		if (el_parent)
 		{
 			el_parent->update_floats(dy, parent);
@@ -3680,7 +3680,7 @@ void litehtml::html_tag::remove_before_after()
 	}
 }
 
-litehtml::element::ptr litehtml::html_tag::get_element_before()
+std::shared_ptr<litehtml::element> litehtml::html_tag::get_element_before()
 {
 	if(!m_children.empty())
 	{
@@ -3689,13 +3689,13 @@ litehtml::element::ptr litehtml::html_tag::get_element_before()
 			return m_children.front();
 		}
 	}
-	element::ptr el = std::make_shared<el_before>(get_document());
+	std::shared_ptr<litehtml::element> el = std::make_shared<el_before>(get_document());
 	el->parent(shared_from_this());
 	m_children.insert(m_children.begin(), el);
 	return el;
 }
 
-litehtml::element::ptr litehtml::html_tag::get_element_after()
+std::shared_ptr<litehtml::element> litehtml::html_tag::get_element_after()
 {
 	if(!m_children.empty())
 	{
@@ -3704,7 +3704,7 @@ litehtml::element::ptr litehtml::html_tag::get_element_after()
 			return m_children.back();
 		}
 	}
-	element::ptr el = std::make_shared<el_after>(get_document());
+	std::shared_ptr<litehtml::element> el = std::make_shared<el_after>(get_document());
 	appendChild(el);
 	return el;
 }
@@ -3759,14 +3759,14 @@ void litehtml::html_tag::refresh_styles()
 					{
 						if(apply & select_match_with_after)
 						{
-							element::ptr el = get_element_after();
+							std::shared_ptr<litehtml::element> el = get_element_after();
 							if(el)
 							{
 								el->add_style(usel->m_selector->m_style, usel->m_selector->m_baseurl);
 							}
 						} else if(apply & select_match_with_before)
 						{
-							element::ptr el = get_element_before();
+							std::shared_ptr<litehtml::element> el = get_element_before();
 							if(el)
 							{
 								el->add_style(usel->m_selector->m_style, usel->m_selector->m_baseurl);
@@ -3780,14 +3780,14 @@ void litehtml::html_tag::refresh_styles()
 					}
 				} else if(apply & select_match_with_after)
 				{
-					element::ptr el = get_element_after();
+					std::shared_ptr<litehtml::element> el = get_element_after();
 					if(el)
 					{
 						el->add_style(usel->m_selector->m_style, usel->m_selector->m_baseurl);
 					}
 				} else if(apply & select_match_with_before)
 				{
-					element::ptr el = get_element_before();
+					std::shared_ptr<litehtml::element> el = get_element_before();
 					if(el)
 					{
 						el->add_style(usel->m_selector->m_style, usel->m_selector->m_baseurl);
@@ -3802,9 +3802,9 @@ void litehtml::html_tag::refresh_styles()
 	}
 }
 
-litehtml::element::ptr litehtml::html_tag::get_child_by_point(int x, int y, int client_x, int client_y, draw_flag flag, int zindex)
+std::shared_ptr<litehtml::element> litehtml::html_tag::get_child_by_point(int x, int y, int client_x, int client_y, draw_flag flag, int zindex)
 {
-	element::ptr ret = nullptr;
+	std::shared_ptr<litehtml::element> ret = nullptr;
 
 	if(m_overflow > overflow_visible)
 	{
@@ -3820,7 +3820,7 @@ litehtml::element::ptr litehtml::html_tag::get_child_by_point(int x, int y, int 
 
 	for(auto i = m_children.rbegin(); i != m_children.rend() && !ret; i++)
 	{
-		element::ptr el = (*i);
+		std::shared_ptr<litehtml::element> el = (*i);
 
 		if(el->is_visible() && el->get_display() != display_inline_text)
 		{
@@ -3890,7 +3890,7 @@ litehtml::element::ptr litehtml::html_tag::get_child_by_point(int x, int y, int 
 			{
 				if(flag == draw_positioned)
 				{
-					element::ptr child = el->get_child_by_point(pos.x, pos.y, client_x, client_y, flag, zindex);
+					std::shared_ptr<litehtml::element> child = el->get_child_by_point(pos.x, pos.y, client_x, client_y, flag, zindex);
 					if(child)
 					{
 						ret = child;
@@ -3900,7 +3900,7 @@ litehtml::element::ptr litehtml::html_tag::get_child_by_point(int x, int y, int 
 					if(	el->get_float() == float_none &&
 						el->get_display() != display_inline_block)
 					{
-						element::ptr child = el->get_child_by_point(pos.x, pos.y, client_x, client_y, flag, zindex);
+						std::shared_ptr<litehtml::element> child = el->get_child_by_point(pos.x, pos.y, client_x, client_y, flag, zindex);
 						if(child)
 						{
 							ret = child;
@@ -3914,11 +3914,11 @@ litehtml::element::ptr litehtml::html_tag::get_child_by_point(int x, int y, int 
 	return ret;
 }
 
-litehtml::element::ptr litehtml::html_tag::get_element_by_point(int x, int y, int client_x, int client_y)
+std::shared_ptr<litehtml::element> litehtml::html_tag::get_element_by_point(int x, int y, int client_x, int client_y)
 {
 	if(!is_visible()) return nullptr;
 
-	element::ptr ret;
+	std::shared_ptr<litehtml::element> ret;
 
 	std::map<int, bool> z_indexes;
 
@@ -4015,7 +4015,7 @@ const litehtml::background* litehtml::html_tag::get_background(bool own_only)
 
 	if(is_body())
 	{
-		element::ptr el_parent = parent();
+		std::shared_ptr<litehtml::element> el_parent = parent();
 		if (el_parent)
 		{
 			if (!el_parent->get_background(true))
@@ -4201,7 +4201,7 @@ int litehtml::html_tag::render_box(int x, int y, int max_width, bool second_pass
 	int min_height = 0;
 	if (!m_css_min_height.is_predefined() && m_css_min_height.units() == css_units_percentage)
 	{
-		element::ptr el_parent = parent();
+		std::shared_ptr<litehtml::element> el_parent = parent();
 		if (el_parent)
 		{
 			if (el_parent->get_predefined_height(block_height))
@@ -4572,7 +4572,7 @@ int litehtml::html_tag::render_table(int x, int y, int max_width, bool /*second_
 	int min_height = 0;
 	if (!m_css_min_height.is_predefined() && m_css_min_height.units() == css_units_percentage)
 	{
-		element::ptr el_parent = parent();
+		std::shared_ptr<litehtml::element> el_parent = parent();
 		if (el_parent)
 		{
 			int parent_height = 0;
@@ -4679,7 +4679,7 @@ void litehtml::html_tag::draw_children_box(uint_ptr hdc, int x, int y, const pos
 	pos.x += x;
 	pos.y += y;
 
-	document::ptr doc = get_document();
+	std::shared_ptr<document> doc = get_document();
 
 	if (m_overflow > overflow_visible)
 	{
@@ -4695,7 +4695,7 @@ void litehtml::html_tag::draw_children_box(uint_ptr hdc, int x, int y, const pos
 		doc->container()->set_clip(hdc, pos, bdr_radius, true, true);
 	}
 
-	element::ptr el;
+	std::shared_ptr<litehtml::element> el;
 	for (auto& item : m_children)
 	{
 		el = item;

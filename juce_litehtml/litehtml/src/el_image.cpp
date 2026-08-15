@@ -19,7 +19,7 @@ void litehtml::el_image::get_content_size( size& sz, int max_width )
 
 int litehtml::el_image::calc_max_height(int image_height)
 {
-	document::ptr doc = get_document();
+	std::shared_ptr<document> doc = get_document();
 	int percentSize = 0;
 	if (m_css_max_height.units() == css_units_percentage)
 	{
@@ -53,7 +53,7 @@ int litehtml::el_image::render( int x, int y, int max_width, bool second_pass )
 
 	m_pos.move_to(x, y);
 
-	document::ptr doc = get_document();
+	std::shared_ptr<document> doc = get_document();
 
 	litehtml::size sz;
 	doc->container()->get_image_size(m_src.c_str(), 0, sz);

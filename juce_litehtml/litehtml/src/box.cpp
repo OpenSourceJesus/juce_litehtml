@@ -18,7 +18,7 @@ int litehtml::block_box::width() const
 	return m_element->width();
 }
 
-void litehtml::block_box::add_element(const element::ptr &el)
+void litehtml::block_box::add_element(const std::shared_ptr<litehtml::element> &el)
 {
 	m_element = el;
 	el->m_box = this;
@@ -30,7 +30,7 @@ void litehtml::block_box::finish(bool last_box)
 	m_element->apply_relative_shift(m_box_right - m_box_left);
 }
 
-bool litehtml::block_box::can_hold(const element::ptr &el, white_space ws) const
+bool litehtml::block_box::can_hold(const std::shared_ptr<litehtml::element> &el, white_space ws) const
 {
 	if(m_element || el->is_inline_box())
 	{
@@ -111,7 +111,7 @@ int litehtml::line_box::width() const
 	return m_width;
 }
 
-void litehtml::line_box::add_element(const element::ptr &el)
+void litehtml::line_box::add_element(const std::shared_ptr<litehtml::element> &el)
 {
 	el->m_skip	= false;
 	el->m_box	= nullptr;
@@ -295,7 +295,7 @@ void litehtml::line_box::finish(bool last_box)
 	m_baseline = (base_line - y1) - (m_height - line_height);
 }
 
-bool litehtml::line_box::can_hold(const element::ptr &el, white_space ws) const
+bool litehtml::line_box::can_hold(const std::shared_ptr<litehtml::element> &el, white_space ws) const
 {
 	if(!el->is_inline_box()) return false;
 
@@ -423,7 +423,7 @@ void litehtml::line_box::new_width( int left, int right, elements_vector& els )
 		size_t remove_begin = m_items.size();
 		for (size_t i = 1; i < m_items.size(); i++)
 		{
-			element::ptr el = m_items[i];
+			std::shared_ptr<litehtml::element> el = m_items[i];
 
 			if(!el->m_skip)
 			{

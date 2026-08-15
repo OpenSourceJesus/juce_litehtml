@@ -12,7 +12,7 @@ void litehtml::el_link::parse_attributes()
 {
 	bool processed = false;
 
-	document::ptr doc = get_document();
+	std::shared_ptr<document> doc = get_document();
 
 	const tchar_t* rel = get_attr(_t("rel"));
 	if(rel && !t_strcmp(rel, _t("stylesheet")))

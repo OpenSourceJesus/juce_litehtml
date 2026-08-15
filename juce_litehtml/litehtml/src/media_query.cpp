@@ -16,9 +16,9 @@ litehtml::media_query::media_query( const media_query& val )
 	m_media_type	= val.m_media_type;
 }
 
-litehtml::media_query::ptr litehtml::media_query::create_from_string(const tstring& str, const std::shared_ptr<document>& doc)
+std::shared_ptr<litehtml::media_query> litehtml::media_query::create_from_string(const tstring& str, const std::shared_ptr<document>& doc)
 {
-	media_query::ptr query = std::make_shared<media_query>();
+	std::shared_ptr<media_query> query = std::make_shared<media_query>();
 
 	string_vector tokens;
 	split_string(str, tokens, _t(" \t\r\n"), _t(""), _t("("));
@@ -122,9 +122,9 @@ bool litehtml::media_query::check( const media_features& features ) const
 
 //////////////////////////////////////////////////////////////////////////
 
-litehtml::media_query_list::ptr litehtml::media_query_list::create_from_string(const tstring& str, const std::shared_ptr<document>& doc)
+std::shared_ptr<litehtml::media_query_list> litehtml::media_query_list::create_from_string(const tstring& str, const std::shared_ptr<document>& doc)
 {
-	media_query_list::ptr list = std::make_shared<media_query_list>();
+	std::shared_ptr<media_query_list> list = std::make_shared<media_query_list>();
 
 	string_vector tokens;
 	split_string(str, tokens, _t(","));
@@ -134,7 +134,7 @@ litehtml::media_query_list::ptr litehtml::media_query_list::create_from_string(c
 		trim(token);
 		lcase(token);
 
-		litehtml::media_query::ptr query = media_query::create_from_string(token, doc);
+		std::shared_ptr<litehtml::media_query> query = media_query::create_from_string(token, doc);
 		if(query)
 		{
 			list->m_queries.push_back(query);
