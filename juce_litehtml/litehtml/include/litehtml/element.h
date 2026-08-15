@@ -33,7 +33,8 @@ namespace litehtml
 			~js_object_ref();
 		};
 
-		JSValue& js_value() { return m_jsValue; }
+		/* crust: reference return -> pointer. */
+		JSValue* js_value() { return &m_jsValue; }
 
 	protected:
 		std::weak_ptr<element>		m_parent;

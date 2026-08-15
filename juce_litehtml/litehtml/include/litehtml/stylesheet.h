@@ -15,9 +15,10 @@ namespace litehtml
 		css() = default;
 		~css() = default;
 
-		const css_selector::vector& selectors() const
+		/* crust: reference return -> pointer. */
+		const css_selector::vector* selectors() const
 		{
-			return m_selectors;
+			return &m_selectors;
 		}
 
 		void clear()

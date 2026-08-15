@@ -121,7 +121,9 @@ namespace litehtml
 	class table_column_accessor
 	{
 	public:
-		virtual int& get(table_column& col) = 0;
+		/* crust: reference return -> pointer. The result is used as an
+		   lvalue (`*acc->get(col) += n`), which a pointer keeps. */
+		virtual int* get(table_column& col) = 0;
 
 	protected:
 		~table_column_accessor() = default;
@@ -130,19 +132,19 @@ namespace litehtml
 	class table_column_accessor_max_width final : public table_column_accessor
 	{
 	public:
-		int& get(table_column& col) override;
+		int* get(table_column& col) override;
 	};
 
 	class table_column_accessor_min_width final : public table_column_accessor
 	{
 	public:
-		int& get(table_column& col) override;
+		int* get(table_column& col) override;
 	};
 
 	class table_column_accessor_width final : public table_column_accessor
 	{
 	public:
-		int& get(table_column& col) override;
+		int* get(table_column& col) override;
 	};
 
 	struct table_cell
@@ -227,9 +229,12 @@ namespace litehtml
 		bool			is_rowspanned(int r, int c);
 		void			finish();
 		table_cell*		cell(int t_col, int t_row);
-		table_column&	column(int c)	{ return m_columns[c];	}
-		table_row&		row(int r)		{ return m_rows[r];		}
-		elements_vector& captions()		{ return m_captions; }
+		/* crust: reference returns -> pointers. Every use is a member
+		   access, so the call sites read `->` instead of `.`. */
+		table_column*	column(int c)	{ return &m_columns[c];	}
+		table_row*		row(int r)		{ return &m_rows[r];		}
+		/* crust: reference return -> pointer. */
+		elements_vector* captions()		{ return &m_captions; }
 
 		int				rows_count() const	{ return m_rows_count;	}
 		int				cols_count() const	{ return m_cols_count; }

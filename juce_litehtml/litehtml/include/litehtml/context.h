@@ -65,7 +65,8 @@ namespace litehtml
 		JSValue js_eval(const litehtml::tstring& script);
 
 		void			load_master_stylesheet(const tchar_t* str);
-		litehtml::css&	master_css() { return m_master_css; }
+		/* crust: reference return -> pointer. */
+		litehtml::css*	master_css() { return &m_master_css; }
 		JSRuntime*		js_runtime() { return m_jsRuntime; }
 		JSContext*		js_context() { return m_jsContext; }
 

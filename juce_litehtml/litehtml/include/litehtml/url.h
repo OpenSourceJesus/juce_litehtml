@@ -50,14 +50,16 @@ public:
         const tstring& query,
         const tstring& fragment);
 
-    const tstring& string() const
+    /* crust: reference returns are not in the C++ subset -- returning
+       `T *` keeps the call sites explicit about what they are holding. */
+    const tstring* string() const
     {
-        return str_;
+        return &str_;
     }
 
-    const tstring& scheme() const
+    const tstring* scheme() const
     {
-        return scheme_;
+        return &scheme_;
     }
 
     bool has_scheme() const
@@ -65,9 +67,9 @@ public:
         return !scheme_.empty();
     }
 
-    const tstring& authority() const
+    const tstring* authority() const
     {
-        return authority_;
+        return &authority_;
     }
 
     bool has_authority() const
@@ -75,9 +77,9 @@ public:
         return !authority_.empty();
     }
 
-    const tstring& path() const
+    const tstring* path() const
     {
-        return path_;
+        return &path_;
     }
 
     bool has_path() const
@@ -85,9 +87,9 @@ public:
         return !path_.empty();
     }
 
-    const tstring& query() const
+    const tstring* query() const
     {
-        return query_;
+        return &query_;
     }
 
     bool has_query() const
@@ -95,9 +97,9 @@ public:
         return !query_.empty();
     }
 
-    const tstring& fragment() const
+    const tstring* fragment() const
     {
-        return fragment_;
+        return &fragment_;
     }
 
     bool has_fragment() const
