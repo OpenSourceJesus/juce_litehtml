@@ -28,7 +28,7 @@ namespace litehtml
 		typedef std::shared_ptr<media_query>	ptr;
 		typedef std::vector<media_query::ptr>	vector;
 	private:
-		media_query_expression::vector	m_expressions;
+		std::vector<media_query_expression>	m_expressions;
 		bool							m_not;
 		media_type						m_media_type;
 	public:
@@ -45,7 +45,7 @@ namespace litehtml
 		typedef std::shared_ptr<media_query_list>	ptr;
 		typedef std::vector<media_query_list::ptr>	vector;
 	private:
-		media_query::vector	m_queries;
+		std::vector<std::shared_ptr<media_query> >	m_queries;
 		bool				m_is_used;
 	public:
 		media_query_list();

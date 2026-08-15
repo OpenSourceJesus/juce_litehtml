@@ -176,7 +176,7 @@ namespace litehtml
 		virtual bool				on_lbutton_down();
 		virtual bool				on_lbutton_up();
 		virtual void				on_click();
-		virtual bool				find_styles_changes(position::vector& redraw_boxes, int x, int y);
+		virtual bool				find_styles_changes(std::vector<position>& redraw_boxes, int x, int y);
 		virtual const tchar_t*		get_cursor();
 		virtual void				init_font();
 		virtual bool				is_point_inside(int x, int y);
@@ -188,7 +188,7 @@ namespace litehtml
 		virtual style_display		get_display() const;
 		virtual visibility			get_visibility() const;
 		virtual element_position	get_element_position(css_offsets* offsets = nullptr) const;
-		virtual void				get_inline_boxes(position::vector& boxes);
+		virtual void				get_inline_boxes(std::vector<position>& boxes);
 		virtual void				parse_styles(bool is_reparse = false);
 		virtual void				draw(uint_ptr hdc, int x, int y, const position* clip);
 		virtual void				draw_background( uint_ptr hdc, int x, int y, const position* clip );

@@ -151,7 +151,7 @@ namespace litehtml
 	{
 	public:
 		tstring							m_tag;
-		css_attribute_selector::vector	m_attrs;
+		std::vector<css_attribute_selector>	m_attrs;
 	public:
 
 		void parse(const tstring& txt);

@@ -54,15 +54,15 @@ namespace litehtml
 		white_space				m_white_space;
 		element_float			m_float;
 		element_clear			m_clear;
-		floated_box::vector		m_floats_left;
-		floated_box::vector		m_floats_right;
+		std::vector<floated_box>		m_floats_left;
+		std::vector<floated_box>		m_floats_right;
 		elements_vector			m_positioned;
 		background				m_bg;
 		element_position		m_el_position;
 		int						m_line_height;
 		bool					m_lh_predefined;
 		string_vector			m_pseudo_classes;
-		used_selector::vector	m_used_styles;
+		std::vector<std::unique_ptr<used_selector> >	m_used_styles;
 
 		uint_ptr				m_font;
 		int						m_font_size;
@@ -155,7 +155,7 @@ namespace litehtml
 		bool				on_lbutton_down() override;
 		bool				on_lbutton_up() override;
 		void				on_click() override;
-		bool				find_styles_changes(position::vector& redraw_boxes, int x, int y) override;
+		bool				find_styles_changes(std::vector<position>& redraw_boxes, int x, int y) override;
 		const tchar_t*		get_cursor() override;
 		void				init_font() override;
 		bool				set_pseudo_class(const tchar_t* pclass, bool add) override;
@@ -197,7 +197,7 @@ namespace litehtml
 		bool				have_inline_child() const override;
 		void				get_content_size(size& sz, int max_width) override;
 		void				init() override;
-		void				get_inline_boxes(position::vector& boxes) override;
+		void				get_inline_boxes(std::vector<position>& boxes) override;
 		bool				is_floats_holder() const override;
 		int					get_floats_height(element_float el_float = float_none) const override;
 		int					get_left_floats_height() const override;

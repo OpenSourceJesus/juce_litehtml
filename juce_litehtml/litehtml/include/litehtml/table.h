@@ -192,8 +192,8 @@ namespace litehtml
 		int						m_rows_count;
 		int						m_cols_count;
 		rows					m_cells;
-		table_column::vector	m_columns;
-		table_row::vector		m_rows;
+		std::vector<table_column>	m_columns;
+		std::vector<table_row>		m_rows;
 		elements_vector			m_captions;
 		int						m_captions_height;
 	public:

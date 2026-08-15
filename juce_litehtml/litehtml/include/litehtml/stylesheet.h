@@ -10,13 +10,13 @@ namespace litehtml
 
 	class css
 	{
-		css_selector::vector	m_selectors;
+		std::vector<std::shared_ptr<css_selector> >	m_selectors;
 	public:
 		css() = default;
 		~css() = default;
 
 		/* crust: reference return -> pointer. */
-		const css_selector::vector* selectors() const
+		const std::vector<std::shared_ptr<css_selector> >* selectors() const
 		{
 			return &m_selectors;
 		}
