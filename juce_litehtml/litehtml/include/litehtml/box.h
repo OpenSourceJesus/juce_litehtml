@@ -14,8 +14,11 @@ namespace litehtml
 	class box
 	{
 	public:
-		typedef std::unique_ptr<litehtml::box>	ptr;
-		typedef std::vector< box::ptr >			vector;
+		/* crust: shared_ptr, not unique_ptr -- box::vector holds these and
+		   the subset has no moves, so a container cannot copy a move-only
+		   element into place. */
+		typedef std::shared_ptr<litehtml::box>	ptr;
+		typedef std::vector< std::shared_ptr<litehtml::box> >			vector;
 	protected:
 		int		m_box_top;
 		int		m_box_left;
@@ -37,8 +40,8 @@ namespace litehtml
 		virtual litehtml::box_type	get_type() const = 0;
 		virtual int					height() const = 0;
 		virtual int					width() const = 0;
-		virtual void				add_element(const element::ptr &el) = 0;
-		virtual bool				can_hold(const element::ptr &el, white_space ws) const = 0;
+		virtual void				add_element(const std::shared_ptr<litehtml::element> &el) = 0;
+		virtual bool				can_hold(const std::shared_ptr<litehtml::element> &el, white_space ws) const = 0;
 		virtual void				finish(bool last_box = false) = 0;
 		virtual bool				is_empty() const = 0;
 		virtual int					baseline() const = 0;
@@ -53,7 +56,7 @@ namespace litehtml
 
 	class block_box : public box
 	{
-		element::ptr m_element;
+		std::shared_ptr<litehtml::element> m_element;
 	public:
 		block_box(int top, int left, int right) : box(top, left, right)
 		{
@@ -63,8 +66,8 @@ namespace litehtml
 		litehtml::box_type	get_type() const override;
 		int					height() const override;
 		int					width() const override;
-		void				add_element(const element::ptr &el) override;
-		bool				can_hold(const element::ptr &el, white_space ws) const override;
+		void				add_element(const std::shared_ptr<litehtml::element> &el) override;
+		bool				can_hold(const std::shared_ptr<litehtml::element> &el, white_space ws) const override;
 		void				finish(bool last_box = false) override;
 		bool				is_empty() const override;
 		int					baseline() const override;
@@ -100,8 +103,8 @@ namespace litehtml
 		litehtml::box_type	get_type() const override;
 		int					height() const override;
 		int					width() const override;
-		void				add_element(const element::ptr &el) override;
-		bool				can_hold(const element::ptr &el, white_space ws) const override;
+		void				add_element(const std::shared_ptr<litehtml::element> &el) override;
+		bool				can_hold(const std::shared_ptr<litehtml::element> &el, white_space ws) const override;
 		void				finish(bool last_box = false) override;
 		bool				is_empty() const override;
 		int					baseline() const override;

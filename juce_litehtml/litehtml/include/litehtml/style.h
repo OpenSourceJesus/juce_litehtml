@@ -41,7 +41,7 @@ namespace litehtml
 	{
 	public:
 		typedef std::shared_ptr<style>		ptr;
-		typedef std::vector<style::ptr>		vector;
+		typedef std::vector<std::shared_ptr<style>>		vector;
 	private:
 		props_map			m_properties;
 		static string_map	m_valid_values;

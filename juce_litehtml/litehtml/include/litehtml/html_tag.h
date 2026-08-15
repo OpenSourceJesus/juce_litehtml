@@ -109,18 +109,18 @@ namespace litehtml
 
 		int					render(int x, int y, int max_width, bool second_pass = false) override;
 
-		int					render_inline(const element::ptr &container, int max_width) override;
-		int					place_element(const element::ptr &el, int max_width) override;
+		int					render_inline(const std::shared_ptr<litehtml::element> &container, int max_width) override;
+		int					place_element(const std::shared_ptr<litehtml::element> &el, int max_width) override;
 		bool				fetch_positioned() override;
 		void				render_positioned(render_type rt = render_all) override;
 
-		int					new_box(const element::ptr &el, int max_width, line_context& line_ctx);
+		int					new_box(const std::shared_ptr<litehtml::element> &el, int max_width, line_context& line_ctx);
 
-		int					get_cleared_top(const element::ptr &el, int line_top) const;
+		int					get_cleared_top(const std::shared_ptr<litehtml::element> &el, int line_top) const;
 		int					finish_last_box(bool end_of_render = false);
 
-		bool				appendChild(const element::ptr &el) override;
-		bool				removeChild(const element::ptr &el) override;
+		bool				appendChild(const std::shared_ptr<litehtml::element> &el) override;
+		bool				removeChild(const std::shared_ptr<litehtml::element> &el) override;
 		void				clearRecursive() override;
 		const tchar_t*		get_tagName() const override;
 		void				set_tagName(const tchar_t* tag) override;
@@ -137,7 +137,7 @@ namespace litehtml
 		css_length			get_css_height() const override;
 		element_clear		get_clear() const override;
 		size_t				get_children_count() const override;
-		element::ptr		get_child(int idx) const override;
+		std::shared_ptr<litehtml::element>		get_child(int idx) const override;
 		element_position	get_element_position(css_offsets* offsets = nullptr) const override;
 		overflow			get_overflow() const override;
 
@@ -183,17 +183,17 @@ namespace litehtml
 		elements_vector		select_all(const tstring& selector) override;
 		elements_vector		select_all(const css_selector& selector) override;
 
-		element::ptr		select_one(const tstring& selector) override;
-		element::ptr		select_one(const css_selector& selector) override;
+		std::shared_ptr<litehtml::element>		select_one(const tstring& selector) override;
+		std::shared_ptr<litehtml::element>		select_one(const css_selector& selector) override;
 
-		element::ptr		find_ancestor(const css_selector& selector, bool apply_pseudo = true, bool* is_pseudo = nullptr) override;
-		element::ptr		find_adjacent_sibling(const element::ptr& el, const css_selector& selector, bool apply_pseudo = true, bool* is_pseudo = nullptr) override;
-		element::ptr		find_sibling(const element::ptr& el, const css_selector& selector, bool apply_pseudo = true, bool* is_pseudo = nullptr) override;
+		std::shared_ptr<litehtml::element>		find_ancestor(const css_selector& selector, bool apply_pseudo = true, bool* is_pseudo = nullptr) override;
+		std::shared_ptr<litehtml::element>		find_adjacent_sibling(const std::shared_ptr<litehtml::element>& el, const css_selector& selector, bool apply_pseudo = true, bool* is_pseudo = nullptr) override;
+		std::shared_ptr<litehtml::element>		find_sibling(const std::shared_ptr<litehtml::element>& el, const css_selector& selector, bool apply_pseudo = true, bool* is_pseudo = nullptr) override;
 		void				get_text(tstring& text) override;
 		void				parse_attributes() override;
 
-		bool				is_first_child_inline(const element::ptr& el) const override;
-		bool				is_last_child_inline(const element::ptr& el) override;
+		bool				is_first_child_inline(const std::shared_ptr<litehtml::element>& el) const override;
+		bool				is_last_child_inline(const std::shared_ptr<litehtml::element>& el) override;
 		bool				have_inline_child() const override;
 		void				get_content_size(size& sz, int max_width) override;
 		void				init() override;
@@ -205,9 +205,9 @@ namespace litehtml
 		int					get_line_left(int y) override;
 		int					get_line_right(int y, int def_right) override;
 		void				get_line_left_right(int y, int def_right, int& ln_left, int& ln_right) override;
-		void				add_float(const element::ptr &el, int x, int y) override;
-		void				update_floats(int dy, const element::ptr &parent) override;
-		void				add_positioned(const element::ptr &el) override;
+		void				add_float(const std::shared_ptr<litehtml::element> &el, int x, int y) override;
+		void				update_floats(int dy, const std::shared_ptr<litehtml::element> &parent) override;
+		void				add_positioned(const std::shared_ptr<litehtml::element> &el) override;
 		int					find_next_line_top(int top, int width, int def_right) override;
 		void				apply_vertical_align() override;
 		void				draw_children(uint_ptr hdc, int x, int y, const position* clip, draw_flag flag, int zindex) override;
@@ -216,12 +216,12 @@ namespace litehtml
 		void				calc_document_size(litehtml::size& sz, int x = 0, int y = 0) override;
 		void				get_redraw_box(litehtml::position& pos, int x = 0, int y = 0) override;
 		void				add_style(const tstring& style, const tstring& baseurl) override;
-		element::ptr		get_element_by_point(int x, int y, int client_x, int client_y) override;
-		element::ptr		get_child_by_point(int x, int y, int client_x, int client_y, draw_flag flag, int zindex) override;
+		std::shared_ptr<litehtml::element>		get_element_by_point(int x, int y, int client_x, int client_y) override;
+		std::shared_ptr<litehtml::element>		get_child_by_point(int x, int y, int client_x, int client_y, draw_flag flag, int zindex) override;
 
-		bool				is_nth_child(const element::ptr& el, int num, int off, bool of_type) const override;
-		bool				is_nth_last_child(const element::ptr& el, int num, int off, bool of_type) const override;
-		bool				is_only_child(const element::ptr& el, bool of_type) const override;
+		bool				is_nth_child(const std::shared_ptr<litehtml::element>& el, int num, int off, bool of_type) const override;
+		bool				is_nth_last_child(const std::shared_ptr<litehtml::element>& el, int num, int off, bool of_type) const override;
+		bool				is_only_child(const std::shared_ptr<litehtml::element>& el, bool of_type) const override;
 		const background*	get_background(bool own_only = false) override;
 
 	protected:
@@ -236,8 +236,8 @@ namespace litehtml
 		tstring				get_list_marker_text(int index);
 		static void			parse_nth_child_params( const tstring& param, int &num, int &off );
 		void				remove_before_after();
-		litehtml::element::ptr  get_element_before();
-		litehtml::element::ptr  get_element_after();
+		std::shared_ptr<litehtml::element>  get_element_before();
+		std::shared_ptr<litehtml::element>  get_element_after();
 	};
 
 	/************************************************************************/

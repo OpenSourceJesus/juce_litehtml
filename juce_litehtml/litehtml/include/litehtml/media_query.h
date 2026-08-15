@@ -26,7 +26,7 @@ namespace litehtml
 	{
 	public:
 		typedef std::shared_ptr<media_query>	ptr;
-		typedef std::vector<media_query::ptr>	vector;
+		typedef std::vector<std::shared_ptr<media_query>>	vector;
 	private:
 		std::vector<media_query_expression>	m_expressions;
 		bool							m_not;
@@ -35,7 +35,7 @@ namespace litehtml
 		media_query();
 		media_query(const media_query& val);
 
-		static media_query::ptr create_from_string(const tstring& str, const std::shared_ptr<document>& doc);
+		static std::shared_ptr<media_query> create_from_string(const tstring& str, const std::shared_ptr<document>& doc);
 		bool check(const media_features& features) const;
 	};
 
@@ -43,7 +43,7 @@ namespace litehtml
 	{
 	public:
 		typedef std::shared_ptr<media_query_list>	ptr;
-		typedef std::vector<media_query_list::ptr>	vector;
+		typedef std::vector<std::shared_ptr<media_query_list>>	vector;
 	private:
 		std::vector<std::shared_ptr<media_query> >	m_queries;
 		bool				m_is_used;
@@ -51,7 +51,7 @@ namespace litehtml
 		media_query_list();
 		media_query_list(const media_query_list& val);
 
-		static media_query_list::ptr create_from_string(const tstring& str, const std::shared_ptr<document>& doc);
+		static std::shared_ptr<media_query_list> create_from_string(const tstring& str, const std::shared_ptr<document>& doc);
 		bool is_used() const;
 		bool apply_media_features(const media_features& features);	// returns true if the m_is_used changed
 	};

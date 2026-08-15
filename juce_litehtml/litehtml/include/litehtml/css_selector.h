@@ -173,18 +173,18 @@ namespace litehtml
 	{
 	public:
 		typedef std::shared_ptr<css_selector>	ptr;
-		typedef std::vector<css_selector::ptr>	vector;
+		typedef std::vector<std::shared_ptr<css_selector>>	vector;
 	public:
 		selector_specificity	m_specificity;
 		css_element_selector	m_right;
-		css_selector::ptr		m_left;
+		std::shared_ptr<css_selector>		m_left;
 		css_combinator			m_combinator;
 		tstring					m_style;
 		int						m_order;
-		media_query_list::ptr	m_media_query;
+		std::shared_ptr<media_query_list>	m_media_query;
 		tstring					m_baseurl;
 	public:
-		explicit css_selector(const media_query_list::ptr& media, const tstring& baseurl)
+		explicit css_selector(const std::shared_ptr<media_query_list>& media, const tstring& baseurl)
 		{
 			m_media_query	= media;
 			m_baseurl		= baseurl;
@@ -246,12 +246,12 @@ namespace litehtml
 		return (v1.m_specificity < v2.m_specificity);
 	}
 
-	inline bool operator >(const css_selector::ptr& v1, const css_selector::ptr& v2)
+	inline bool operator >(const std::shared_ptr<css_selector>& v1, const std::shared_ptr<css_selector>& v2)
 	{
 		return (*v1 > *v2);
 	}
 
-	inline bool operator < (const css_selector::ptr& v1, const css_selector::ptr& v2)
+	inline bool operator < (const std::shared_ptr<css_selector>& v1, const std::shared_ptr<css_selector>& v2)
 	{
 		return (*v1 < *v2);
 	}
@@ -268,12 +268,12 @@ namespace litehtml
 		   sole: m_used_styles is private and nothing takes an element
 		   out of it. */
 		typedef std::shared_ptr<used_selector>	ptr;
-		typedef std::vector<used_selector::ptr>	vector;
+		typedef std::vector<std::shared_ptr<used_selector>>	vector;
 
-		css_selector::ptr	m_selector;
+		std::shared_ptr<css_selector>	m_selector;
 		bool				m_used;
 
-		used_selector(const css_selector::ptr& selector, bool used)
+		used_selector(const std::shared_ptr<css_selector>& selector, bool used)
 		{
 			m_used		= used;
 			m_selector	= selector;

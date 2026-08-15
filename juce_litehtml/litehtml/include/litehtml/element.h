@@ -29,7 +29,9 @@ namespace litehtml
 		struct js_object_ref final
 		{
 			element::weak_ptr element {};
-			js_object_ref(element::ptr el);
+			/* crust: by const reference. A by-value owning parameter is
+			   destroyed by the callee, and the caller still owns it too. */
+			js_object_ref(const std::shared_ptr<litehtml::element>& el);
 			~js_object_ref();
 		};
 
@@ -109,8 +111,8 @@ namespace litehtml
 		bool						skip() const;
 		void						skip(bool val);
 		bool						have_parent() const;
-		element::ptr				parent() const;
-		void						parent(const element::ptr& par);
+		std::shared_ptr<litehtml::element>				parent() const;
+		void						parent(const std::shared_ptr<litehtml::element>& par);
 		bool						is_visible() const;
 		int							calc_width(int defVal) const;
 		int							get_inline_shift_left();
@@ -121,13 +123,13 @@ namespace litehtml
 
 		std::shared_ptr<document>	get_document() const;
 
-		element::ptr				get_parent() const;
+		std::shared_ptr<litehtml::element>				get_parent() const;
 
 		virtual elements_vector		select_all(const tstring& selector);
 		virtual elements_vector		select_all(const css_selector& selector);
 
-		virtual element::ptr		select_one(const tstring& selector);
-		virtual element::ptr		select_one(const css_selector& selector);
+		virtual std::shared_ptr<litehtml::element>		select_one(const tstring& selector);
+		virtual std::shared_ptr<litehtml::element>		select_one(const css_selector& selector);
 
 		virtual int					render(int x, int y, int max_width, bool second_pass = false);
 		virtual int					render_inline(const ptr &container, int max_width);
@@ -149,7 +151,7 @@ namespace litehtml
 		virtual vertical_align		get_vertical_align() const;
 		virtual element_clear		get_clear() const;
 		virtual size_t				get_children_count() const;
-		virtual element::ptr		get_child(int idx) const;
+		virtual std::shared_ptr<litehtml::element>		get_child(int idx) const;
 		virtual overflow			get_overflow() const;
 
 		virtual css_length			get_css_left() const;
@@ -199,12 +201,12 @@ namespace litehtml
 		virtual void				parse_attributes();
 		virtual int					select(const css_selector& selector, bool apply_pseudo = true);
 		virtual int					select(const css_element_selector& selector, bool apply_pseudo = true);
-		virtual element::ptr		find_ancestor(const css_selector& selector, bool apply_pseudo = true, bool* is_pseudo = nullptr);
+		virtual std::shared_ptr<litehtml::element>		find_ancestor(const css_selector& selector, bool apply_pseudo = true, bool* is_pseudo = nullptr);
 		virtual bool				is_ancestor(const ptr &el) const;
-		virtual element::ptr		find_adjacent_sibling(const element::ptr& el, const css_selector& selector, bool apply_pseudo = true, bool* is_pseudo = nullptr);
-		virtual element::ptr		find_sibling(const element::ptr& el, const css_selector& selector, bool apply_pseudo = true, bool* is_pseudo = nullptr);
-		virtual bool				is_first_child_inline(const element::ptr& el) const;
-		virtual bool				is_last_child_inline(const element::ptr& el);
+		virtual std::shared_ptr<litehtml::element>		find_adjacent_sibling(const std::shared_ptr<litehtml::element>& el, const css_selector& selector, bool apply_pseudo = true, bool* is_pseudo = nullptr);
+		virtual std::shared_ptr<litehtml::element>		find_sibling(const std::shared_ptr<litehtml::element>& el, const css_selector& selector, bool apply_pseudo = true, bool* is_pseudo = nullptr);
+		virtual bool				is_first_child_inline(const std::shared_ptr<litehtml::element>& el) const;
+		virtual bool				is_last_child_inline(const std::shared_ptr<litehtml::element>& el);
 		virtual bool				have_inline_child() const;
 		virtual void				get_content_size(size& sz, int max_width);
 		virtual void				init();
@@ -222,15 +224,15 @@ namespace litehtml
 		virtual int					get_zindex() const;
 		virtual void				draw_stacking_context(uint_ptr hdc, int x, int y, const position* clip, bool with_positioned);
 		virtual void				draw_children( uint_ptr hdc, int x, int y, const position* clip, draw_flag flag, int zindex );
-		virtual bool				is_nth_child(const element::ptr& el, int num, int off, bool of_type) const;
-		virtual bool				is_nth_last_child(const element::ptr& el, int num, int off, bool of_type) const;
-		virtual bool				is_only_child(const element::ptr& el, bool of_type) const;
+		virtual bool				is_nth_child(const std::shared_ptr<litehtml::element>& el, int num, int off, bool of_type) const;
+		virtual bool				is_nth_last_child(const std::shared_ptr<litehtml::element>& el, int num, int off, bool of_type) const;
+		virtual bool				is_only_child(const std::shared_ptr<litehtml::element>& el, bool of_type) const;
 		virtual bool				get_predefined_height(int& p_height) const;
 		virtual void				calc_document_size(litehtml::size& sz, int x = 0, int y = 0);
 		virtual void				get_redraw_box(litehtml::position& pos, int x = 0, int y = 0);
 		virtual void				add_style(const tstring& style, const tstring& baseurl);
-		virtual element::ptr		get_element_by_point(int x, int y, int client_x, int client_y);
-		virtual element::ptr		get_child_by_point(int x, int y, int client_x, int client_y, draw_flag flag, int zindex);
+		virtual std::shared_ptr<litehtml::element>		get_element_by_point(int x, int y, int client_x, int client_y);
+		virtual std::shared_ptr<litehtml::element>		get_child_by_point(int x, int y, int client_x, int client_y, draw_flag flag, int zindex);
 		virtual const background*	get_background(bool own_only = false);
 	};
 
@@ -372,12 +374,12 @@ namespace litehtml
 		return !m_parent.expired();
 	}
 
-	inline element::ptr litehtml::element::parent() const
+	inline std::shared_ptr<litehtml::element> litehtml::element::parent() const
 	{
 		return m_parent.lock();
 	}
 
-	inline void litehtml::element::parent(const element::ptr& par)
+	inline void litehtml::element::parent(const std::shared_ptr<litehtml::element>& par)
 	{
 		m_parent = par;
 	}
@@ -433,7 +435,7 @@ namespace litehtml
 		return m_doc.lock();
 	}
 
-	inline element::ptr element::get_parent() const
+	inline std::shared_ptr<litehtml::element> element::get_parent() const
 	{
 		return m_parent.lock();
 	}

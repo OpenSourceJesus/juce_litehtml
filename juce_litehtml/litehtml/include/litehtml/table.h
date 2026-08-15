@@ -10,7 +10,7 @@ namespace litehtml
 		int				height;
 		int				border_top;
 		int				border_bottom;
-		element::ptr	el_row;
+		std::shared_ptr<litehtml::element>	el_row;
 		int				top;
 		int				bottom;
 		css_length		css_height;
@@ -28,7 +28,7 @@ namespace litehtml
 			css_height.predef(0);
 		}
 
-		table_row(int h, element::ptr& row)
+		table_row(int h, std::shared_ptr<litehtml::element>& row)
 		{
 			min_height		= 0;
 			height			= h;
@@ -141,7 +141,7 @@ namespace litehtml
 
 	struct table_cell
 	{
-		element::ptr	el;
+		std::shared_ptr<litehtml::element>	el;
 		int				colspan;
 		int				rowspan;
 		int				min_width;
@@ -206,8 +206,8 @@ namespace litehtml
 		}
 
 		void			clear();
-		void			begin_row(element::ptr& row);
-		void			add_cell(element::ptr& el);
+		void			begin_row(std::shared_ptr<litehtml::element>& row);
+		void			add_cell(std::shared_ptr<litehtml::element>& el);
 		bool			is_rowspanned(int r, int c);
 		void			finish();
 		table_cell*		cell(int t_col, int t_row);

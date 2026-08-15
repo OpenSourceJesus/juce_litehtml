@@ -64,7 +64,7 @@ namespace litehtml
 		litehtml::size						m_size;
 		std::vector<position>					m_fixed_boxes;
 		std::vector<std::shared_ptr<media_query_list> >			m_media_lists;
-		element::ptr						m_over_element;
+		std::shared_ptr<litehtml::element>						m_over_element;
 		elements_vector						m_tabular_elements;
 		media_features						m_media;
 		tstring                             m_lang;
@@ -72,7 +72,7 @@ namespace litehtml
 
 		JSValue								m_jsValue;
 
-		std::vector<litehtml::element::ptr> m_stashed_elements;
+		std::vector<std::shared_ptr<litehtml::element>> m_stashed_elements;
 
 	public:
 		document(litehtml::document_container* objContainer, litehtml::context* ctx);
@@ -97,25 +97,25 @@ namespace litehtml
 		bool							on_lbutton_down(int x, int y, int client_x, int client_y, std::vector<position>& redraw_boxes);
 		bool							on_lbutton_up(int x, int y, int client_x, int client_y, std::vector<position>& redraw_boxes);
 		bool							on_mouse_leave(std::vector<position>& redraw_boxes);
-		litehtml::element::ptr			create_element(const tchar_t* tag_name, const string_map& attributes);
-		element::ptr					root();
+		std::shared_ptr<litehtml::element>			create_element(const tchar_t* tag_name, const string_map& attributes);
+		std::shared_ptr<litehtml::element>					root();
 		void							get_fixed_boxes(std::vector<position>& fixed_boxes);
 		void							add_fixed_box(const position& pos);
-		void							add_media_list(const media_query_list::ptr& list);
+		void							add_media_list(const std::shared_ptr<media_query_list>& list);
 		bool							media_changed();
 		bool							lang_changed();
 		bool                            match_lang(const tstring & lang);
-		void							add_tabular(const element::ptr& el);
+		void							add_tabular(const std::shared_ptr<litehtml::element>& el);
 		element::const_ptr		        get_over_element() const { return m_over_element; }
 
 		void                            append_children_from_string(element& parent, const tchar_t* str);
 		void                            append_children_from_utf8(element& parent, const char* str);
 
-		void							stash_element(litehtml::element::ptr el);
-		void							remove_from_stash(litehtml::element::ptr el);
+		void							stash_element(std::shared_ptr<litehtml::element> el);
+		void							remove_from_stash(std::shared_ptr<litehtml::element> el);
 
-		static litehtml::document::ptr createFromString(const tchar_t* str, litehtml::document_container* objPainter, litehtml::context* ctx, litehtml::css* user_styles = nullptr);
-		static litehtml::document::ptr createFromUTF8(const char* str, litehtml::document_container* objPainter, litehtml::context* ctx, litehtml::css* user_styles = nullptr);
+		static std::shared_ptr<litehtml::document> createFromString(const tchar_t* str, litehtml::document_container* objPainter, litehtml::context* ctx, litehtml::css* user_styles = nullptr);
+		static std::shared_ptr<litehtml::document> createFromUTF8(const char* str, litehtml::document_container* objPainter, litehtml::context* ctx, litehtml::css* user_styles = nullptr);
 
 	private:
 		litehtml::uint_ptr	add_font(const tchar_t* name, int size, const tchar_t* weight, const tchar_t* style, const tchar_t* decoration, font_metrics* fm);
@@ -123,15 +123,15 @@ namespace litehtml
 		void create_node(void* gnode, elements_vector& elements, bool parseTextNode);
 		bool update_media_lists(const media_features& features);
 		void fix_tables_layout();
-		void fix_table_children(element::ptr& el_ptr, style_display disp, const tchar_t* disp_str);
-		void fix_table_parent(element::ptr& el_ptr, style_display disp, const tchar_t* disp_str);
+		void fix_table_children(std::shared_ptr<litehtml::element>& el_ptr, style_display disp, const tchar_t* disp_str);
+		void fix_table_parent(std::shared_ptr<litehtml::element>& el_ptr, style_display disp, const tchar_t* disp_str);
 	};
 
-	inline element::ptr document::root()
+	inline std::shared_ptr<litehtml::element> document::root()
 	{
 		return m_root;
 	}
-	inline void document::add_tabular(const element::ptr& el)
+	inline void document::add_tabular(const std::shared_ptr<litehtml::element>& el)
 	{
 		m_tabular_elements.push_back(el);
 	}
