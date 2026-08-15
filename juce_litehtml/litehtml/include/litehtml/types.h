@@ -542,20 +542,9 @@ namespace litehtml
 			el = val.el;
 			return *this;
 		}
-		floated_box(floated_box&& val)
-		{
-			pos = val.pos;
-			float_side = val.float_side;
-			clear_floats = val.clear_floats;
-			el = std::move(val.el);
-		}
-		void operator=(floated_box&& val)
-		{
-			pos = val.pos;
-			float_side = val.float_side;
-			clear_floats = val.clear_floats;
-			el = std::move(val.el);
-		}
+		/* crust: the move constructor is removed -- rvalue references are
+		   not in the C++ subset, and the copy constructor above does the
+		   same work (one extra shared_ptr refcount bump). */
 	};
 
 	struct int_int_cache

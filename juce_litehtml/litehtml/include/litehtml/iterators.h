@@ -31,11 +31,9 @@ namespace litehtml
 				idx = val.idx;
 				el = val.el;
 			}
-			stack_item(stack_item&& val)
-			{
-				idx = val.idx;
-				el = std::move(val.el);
-			}
+		/* crust: the move constructor is removed -- rvalue references are
+		   not in the C++ subset, and the copy constructor above does the
+		   same work (one extra shared_ptr refcount bump). */
 		};
 
 		std::vector<stack_item>		m_stack;

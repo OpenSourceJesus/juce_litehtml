@@ -55,17 +55,9 @@ namespace litehtml
 			el_row = val.el_row;
 		}
 
-		table_row(table_row&& val) noexcept
-		{
-			min_height = val.min_height;
-			top = val.top;
-			bottom = val.bottom;
-			border_bottom = val.border_bottom;
-			border_top = val.border_top;
-			height = val.height;
-			css_height = val.css_height;
-			el_row = std::move(val.el_row);
-		}
+		/* crust: the move constructor is removed -- rvalue references are
+		   not in the C++ subset, and the copy constructor above does the
+		   same work (one extra shared_ptr refcount bump). */
 	};
 
 	struct table_column
@@ -187,19 +179,9 @@ namespace litehtml
 			borders			= val.borders;
 		}
 
-		table_cell(table_cell&& val) noexcept
-        {
-			el = std::move(val.el);
-			colspan = val.colspan;
-			rowspan = val.rowspan;
-			width = val.width;
-			height = val.height;
-			min_width = val.min_width;
-			min_height = val.min_height;
-			max_width = val.max_width;
-			max_height = val.max_height;
-			borders = val.borders;
-		}
+		/* crust: the move constructor is removed -- rvalue references are
+		   not in the C++ subset, and the copy constructor above does the
+		   same work (one extra shared_ptr refcount bump). */
 	};
 
 	class table_grid
