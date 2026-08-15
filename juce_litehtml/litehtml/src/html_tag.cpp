@@ -1683,7 +1683,7 @@ void litehtml::html_tag::set_data( const tchar_t* /*data*/ )
 
 }
 
-void litehtml::html_tag::get_inline_boxes( position::vector& boxes )
+void litehtml::html_tag::get_inline_boxes( std::vector<position>& boxes )
 {
 	litehtml::box* old_box = nullptr;
 	position pos;
@@ -1714,7 +1714,7 @@ void litehtml::html_tag::get_inline_boxes( position::vector& boxes )
 				pos.height	= std::max(pos.height, el->height() + m_padding.top + m_padding.bottom + m_borders.top + m_borders.bottom);
 			} else if(el->get_display() == display_inline)
 			{
-				position::vector sub_boxes;
+				std::vector<position> sub_boxes;
 				el->get_inline_boxes(sub_boxes);
 				if(!sub_boxes.empty())
 				{
@@ -1772,7 +1772,7 @@ bool litehtml::html_tag::on_mouse_over()
 	return ret;
 }
 
-bool litehtml::html_tag::find_styles_changes( position::vector& redraw_boxes, int x, int y )
+bool litehtml::html_tag::find_styles_changes( std::vector<position>& redraw_boxes, int x, int y )
 {
 	if(m_display == display_inline_text)
 	{
@@ -1798,7 +1798,7 @@ bool litehtml::html_tag::find_styles_changes( position::vector& redraw_boxes, in
 	{
 		if(m_display == display_inline ||  m_display == display_table_row)
 		{
-			position::vector boxes;
+			std::vector<position> boxes;
 			get_inline_boxes(boxes);
 			for(auto & box : boxes)
 			{
@@ -2079,7 +2079,7 @@ void litehtml::html_tag::draw_background( uint_ptr hdc, int x, int y, const posi
 	{
 		const background* bg = get_background();
 
-		position::vector boxes;
+		std::vector<position> boxes;
 		get_inline_boxes(boxes);
 
 		background_paint bg_paint;

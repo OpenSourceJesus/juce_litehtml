@@ -27,7 +27,7 @@ void litehtml::el_tr::parse_attributes()
 	html_tag::parse_attributes();
 }
 
-void litehtml::el_tr::get_inline_boxes( position::vector& boxes )
+void litehtml::el_tr::get_inline_boxes( std::vector<position>& boxes )
 {
 	position pos;
 	for(auto& el : m_children)

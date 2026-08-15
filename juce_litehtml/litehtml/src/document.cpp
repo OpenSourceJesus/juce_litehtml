@@ -479,7 +479,7 @@ void litehtml::document::add_stylesheet( const tchar_t* str, const tchar_t* base
 	}
 }
 
-bool litehtml::document::on_mouse_over( int x, int y, int client_x, int client_y, position::vector& redraw_boxes )
+bool litehtml::document::on_mouse_over( int x, int y, int client_x, int client_y, std::vector<position>& redraw_boxes )
 {
 	if(!m_root)
 	{
@@ -522,7 +522,7 @@ bool litehtml::document::on_mouse_over( int x, int y, int client_x, int client_y
 	return false;
 }
 
-bool litehtml::document::on_mouse_leave( position::vector& redraw_boxes )
+bool litehtml::document::on_mouse_leave( std::vector<position>& redraw_boxes )
 {
 	if(!m_root)
 	{
@@ -538,7 +538,7 @@ bool litehtml::document::on_mouse_leave( position::vector& redraw_boxes )
 	return false;
 }
 
-bool litehtml::document::on_lbutton_down( int x, int y, int client_x, int client_y, position::vector& redraw_boxes )
+bool litehtml::document::on_lbutton_down( int x, int y, int client_x, int client_y, std::vector<position>& redraw_boxes )
 {
 	if(!m_root)
 	{
@@ -589,7 +589,7 @@ bool litehtml::document::on_lbutton_down( int x, int y, int client_x, int client
 	return false;
 }
 
-bool litehtml::document::on_lbutton_up( int x, int y, int client_x, int client_y, position::vector& redraw_boxes )
+bool litehtml::document::on_lbutton_up( int x, int y, int client_x, int client_y, std::vector<position>& redraw_boxes )
 {
 	if(!m_root)
 	{
@@ -684,7 +684,7 @@ litehtml::element::ptr litehtml::document::create_element(const tchar_t* tag_nam
 	return newTag;
 }
 
-void litehtml::document::get_fixed_boxes( position::vector& fixed_boxes )
+void litehtml::document::get_fixed_boxes( std::vector<position>& fixed_boxes )
 {
 	fixed_boxes = m_fixed_boxes;
 }
