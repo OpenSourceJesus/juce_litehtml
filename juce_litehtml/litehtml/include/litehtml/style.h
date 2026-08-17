@@ -87,7 +87,11 @@ namespace litehtml
 		void parse_short_border(const tstring& prefix, const tstring& val, bool important);
 		void parse_short_background(const tstring& val, const tchar_t* baseurl, bool important);
 		void parse_short_font(const tstring& val, bool important);
-		static void subst_vars(tstring& str, const element* el);
+		// Returns false when a var() reference could not be resolved and had
+		// no fallback. The declaration must then be dropped: leaving the
+		// literal text behind makes it parse as a colour, and an unparseable
+		// colour is opaque black.
+		static bool subst_vars(tstring& str, const element* el);
 		void add_parsed_property(const tstring& name, const tstring& val, bool important);
 		void remove_property(const tstring& name, bool important);
 	};
