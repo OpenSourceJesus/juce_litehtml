@@ -24,7 +24,7 @@ be lowered to C by [Crust](https://github.com/brentharts/crust).
 | `tui` | Terminal rendering via ANSI escape codes | nothing |
 | `ncurses` | Interactive terminal browser | libncursesw |
 | `notcurses` | Interactive terminal browser with inline images | libnotcurses |
-| `gtk` | Not written yet; the target is wired and waiting | gtk3 |
+| `gtk` | Windowed browser: links, history, decoded images | gtk3 |
 
 All of them share one container hierarchy and one loader. A front end overrides
 the font metrics and the paint calls; everything else — image sizing,
@@ -74,10 +74,11 @@ failing to link.
 ```sh
 ./run_tests.py        # 22 golden cases, entirely offline
 ./test_network.py     # 10 checks against a server it starts itself
+./test_gtk.py         # 10 checks on the GTK front end, no display needed
 ./check_crust.py      # scans our own sources for constructs Crust refuses
 ```
 
-All three are self-contained. `run_tests.py` embeds both the documents under
+All of them are self-contained. `run_tests.py` embeds both the documents under
 test and their expected output, writing fixtures to `/tmp/litehtml-tests` as
 it runs; `test_network.py` starts its own loopback server. So there are no
 fixture directories to keep in sync, and no suite depends on the outside
@@ -193,6 +194,7 @@ headless/container.*          document_container: records a display list
    └─ dump.*                  text / tree / display-list / ascii output
         │
         ├─ cairo/             real fonts, PNG output
+        │     └─ gtk/         window, events, decoded images
         └─ terminal/          cell-aligned metrics, one grid
               ├─ ansi         escape codes, no dependencies
               ├─ ncurses      interactive
@@ -213,7 +215,8 @@ lands on the grid with nothing to round. Line breaking then happens at the
 right column for free. Compare the `ascii` dump mode, which rounds a
 proportional layout onto a grid afterwards and merges words together.
 
-Details are in [headless/README.md](headless/README.md),
+Details are in [gtk/README.md](gtk/README.md),
+[headless/README.md](headless/README.md),
 [headless/NETWORK.md](headless/NETWORK.md) and
 [terminal/README.md](terminal/README.md).
 
@@ -228,8 +231,6 @@ Nearest first:
   that and gzips anyway produces garbage rather than an error.
 - **Fragment navigation.** `#anchor` is refused, though the element is in the
   tree with a known y position. Both terminal browsers would get it at once.
-- **GTK.** The target is wired and the container it needs already exists —
-  `CairoContainer` does the drawing, GTK only supplies a different `cairo_t`.
 - **Forward history**, connection reuse, `Cache-Control`.
 
 Further out: form controls, text selection, and letting quickjs actually run

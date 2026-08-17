@@ -206,23 +206,27 @@ def make_notcurses_target() -> Target:
 
 
 def make_gtk_target() -> Target:
-    """GTK front end. Sources do not exist yet -- this is the next step."""
+    """GTK front end. Builds on the cairo container, which does the drawing;
+    GTK supplies a window and a different cairo_t."""
     gtk_dir = ROOT / "gtk"
+    tls_defines, tls_pkgs = tls_config()
     return Target(
         name="gtk",
-        description="GTK3 front end (not implemented yet)",
+        description="GTK3 browser: links, history, images",
         binary="litehtml-gtk",
         sources=(
             litehtml_sources()
             + quickjs_sources()
+            + [ROOT / "headless" / s for s in HEADLESS_CORE]
+            + [ROOT / "cairo" / "cairo_container.cpp"]
             + sorted(gtk_dir.glob("*.cpp"))
         ),
-        include_dirs=ENGINE_INCLUDES + [gtk_dir, ROOT / "headless"],
-        defines=list(ENGINE_DEFINES),
+        include_dirs=ENGINE_INCLUDES + [gtk_dir, ROOT / "headless", ROOT / "cairo"],
+        defines=ENGINE_DEFINES + tls_defines,
         cxx_flags=["-std=c++17", "-Wno-changes-meaning"],
         c_flags=["-std=c11", "-Wno-unused-result"],
         link_flags=["-lm", "-lpthread", "-ldl"],
-        pkg_config=["gtk+-3.0", "cairo", "pango", "pangocairo"],
+        pkg_config=["gtk+-3.0", "cairo", "pangocairo"] + tls_pkgs,
     )
 
 
