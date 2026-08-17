@@ -77,9 +77,9 @@ def litehtml_sources():
 
 def quickjs_sources():
     srcs = sorted(QUICKJS.glob("*.c"))
-    # quickjs-bjson is an optional module the engine does not need here, and
-    # quickjs-libc pulls in a POSIX shell/IO layer we deliberately leave out
-    # of the headless renderer.
+    # quickjs-bjson is an optional binary-JSON module nothing here uses.
+    # quickjs-libc is compiled in: the renderer does not touch it, but it is
+    # what gives mininodejs console.log and the std and os modules.
     skip = {"quickjs-bjson.c"}
     return [s for s in srcs if s.name not in skip]
 
@@ -205,6 +205,24 @@ def make_notcurses_target() -> Target:
         "litehtml-notcurses", ["notcurses_main.cpp"], ["notcurses"], [])
 
 
+def make_mininode_target() -> Target:
+    """A node-like command line runner over the same quickjs the browser links.
+
+    Deliberately does not pull in litehtml: this is for testing the JavaScript
+    engine on its own, and a dependency on the renderer would defeat that."""
+    return Target(
+        name="mininodejs",
+        description="Headless JavaScript runner over quickjs (no litehtml)",
+        binary="mininodejs",
+        sources=quickjs_sources() + sorted((ROOT / "mininode").glob("*.cpp")),
+        include_dirs=[QUICKJS, ROOT / "headless"],
+        defines=list(ENGINE_DEFINES),
+        cxx_flags=["-std=c++17"],
+        c_flags=["-std=c11", "-Wno-unused-result"],
+        link_flags=["-lm", "-lpthread", "-ldl"],
+    )
+
+
 def make_gtk_target() -> Target:
     """GTK front end. Builds on the cairo container, which does the drawing;
     GTK supplies a window and a different cairo_t."""
@@ -236,6 +254,7 @@ TARGETS = {
     "tui": make_tui_target,
     "ncurses": make_ncurses_target,
     "notcurses": make_notcurses_target,
+    "mininodejs": make_mininode_target,
     "gtk": make_gtk_target,
 }
 

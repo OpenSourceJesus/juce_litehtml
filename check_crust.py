@@ -20,7 +20,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
-DEFAULT_PATHS = ["headless", "cairo", "terminal", "gtk"]
+DEFAULT_PATHS = ["headless", "cairo", "terminal", "gtk", "mininode"]
 
 # (regex, message). Each corresponds to something CPPRUST.md refuses or
 # does not supply.

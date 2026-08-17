@@ -25,6 +25,7 @@ be lowered to C by [Crust](https://github.com/brentharts/crust).
 | `ncurses` | Interactive terminal browser | libncursesw |
 | `notcurses` | Interactive terminal browser with inline images | libnotcurses |
 | `gtk` | Windowed browser: links, history, decoded images | gtk3 |
+| `mininodejs` | Node-like JavaScript runner over quickjs | nothing |
 
 All of them share one container hierarchy and one loader. A front end overrides
 the font metrics and the paint calls; everything else — image sizing,
@@ -75,6 +76,7 @@ failing to link.
 ./run_tests.py        # 22 golden cases, entirely offline
 ./test_network.py     # 10 checks against a server it starts itself
 ./test_gtk.py         # 10 checks on the GTK front end, no display needed
+./test_mininodejs.py  # JS runner tests, plus an ES feature matrix
 ./check_crust.py      # scans our own sources for constructs Crust refuses
 ```
 
@@ -241,6 +243,14 @@ Nearest first:
 - **Fragment navigation.** `#anchor` is refused, though the element is in the
   tree with a known y position. Both terminal browsers would get it at once.
 - **Forward history**, connection reuse, `Cache-Control`.
+
+**JavaScript.** `mininodejs` runs snippets against the same engine the browser
+links, without a page in the way (see [mininode/README.md](mininode/README.md)).
+Its feature matrix puts the engine at 52 of 58, with ES2015 through ES2020
+essentially complete and everything missing being ES2022 or later. The
+vendored quickjs is from March 2021 and upstream has since implemented all of
+those gaps, so the first question for modern-syntax support is whether to
+rebase rather than to patch.
 
 Further out: form controls, text selection, and letting quickjs actually run
 the scripts the loader is already fetching.
