@@ -175,6 +175,17 @@ Two are worth knowing before touching litehtml:
   `html_tag`. If an element type mysteriously ignores its attributes, check
   what it derives from first.
 
+**The fork's `var()` support has been patched.** `style::subst_vars` had three
+defects: no support for the fallback form `var(--x, blue)`, no handling of
+parentheses inside a fallback, and -- the damaging one -- it left the literal
+text `var(--x)` in place when a variable was undefined. That text then reached
+the colour parser, and `web_color::from_string` returns opaque black for
+anything it cannot parse, so a page setting both background and text through
+variables rendered black on black. An unresolvable `var()` now drops the whole
+declaration, which is what CSS requires. This is the one change to vendored
+code beyond build flags; it is in `litehtml/src/style.cpp` and
+`litehtml/include/litehtml/style.h`.
+
 GCC 13 also rejects `litehtml/include/element.h` under `-Wchanges-meaning`,
 where a member shadows its own class name. `build.py` suppresses the warning
 rather than patching vendored code; revisit if this is ever rebased onto
@@ -227,8 +238,6 @@ Nearest first:
 - **Charset handling.** Everything is assumed UTF-8. A page served as latin-1
   renders wrongly, and much of the older web is latin-1. This is the difference
   between browsing the web and browsing the subset of it that agrees with us.
-- **Compression.** We send `Accept-Encoding: identity`; a server that ignores
-  that and gzips anyway produces garbage rather than an error.
 - **Fragment navigation.** `#anchor` is refused, though the element is in the
   tree with a known y position. Both terminal browsers would get it at once.
 - **Forward history**, connection reuse, `Cache-Control`.

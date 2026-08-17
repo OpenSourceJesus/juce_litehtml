@@ -119,7 +119,7 @@ def make_headless_target() -> Target:
         # trips it. Suppressing beats patching vendored code.
         cxx_flags=["-std=c++17", "-Wno-changes-meaning"],
         c_flags=["-std=c11", "-Wno-unused-result"],
-        link_flags=["-lm", "-lpthread", "-ldl"],
+        link_flags=["-lm", "-lpthread", "-ldl", "-lz"],
         pkg_config=tls_pkgs,
     )
 
@@ -157,7 +157,7 @@ def make_cairo_target() -> Target:
         defines=ENGINE_DEFINES + tls_defines,
         cxx_flags=["-std=c++17", "-Wno-changes-meaning"],
         c_flags=["-std=c11", "-Wno-unused-result"],
-        link_flags=["-lm", "-lpthread", "-ldl"],
+        link_flags=["-lm", "-lpthread", "-ldl", "-lz"],
         pkg_config=["cairo"] + tls_pkgs,
     )
 
@@ -182,7 +182,7 @@ def _terminal_target(name, description, binary, backend_srcs, pkgs, extra_link):
         defines=ENGINE_DEFINES + tls_defines,
         cxx_flags=["-std=c++17", "-Wno-changes-meaning"],
         c_flags=["-std=c11", "-Wno-unused-result"],
-        link_flags=["-lm", "-lpthread", "-ldl"] + extra_link,
+        link_flags=["-lm", "-lpthread", "-ldl", "-lz"] + extra_link,
         pkg_config=pkgs + tls_pkgs,
     )
 
@@ -225,7 +225,7 @@ def make_gtk_target() -> Target:
         defines=ENGINE_DEFINES + tls_defines,
         cxx_flags=["-std=c++17", "-Wno-changes-meaning"],
         c_flags=["-std=c11", "-Wno-unused-result"],
-        link_flags=["-lm", "-lpthread", "-ldl"],
+        link_flags=["-lm", "-lpthread", "-ldl", "-lz"],
         pkg_config=["gtk+-3.0", "cairo", "pangocairo"] + tls_pkgs,
     )
 

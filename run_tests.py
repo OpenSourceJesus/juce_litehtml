@@ -95,6 +95,25 @@ console.log("hello from app.js");
 <p style="text-transform: capitalize">title case here</p>
 </body></html>
 """,
+    "cssvars.html": """\
+<!DOCTYPE html><html><head><title>Vars</title>
+<style>
+:root { --bg: #ffffff; --fg: #202122; --link: #3366cc; }
+body { background-color: var(--bg); color: var(--fg); }
+a { color: var(--link); }
+.fallback { color: var(--never-defined, #cc0000); }
+.nested { color: var(--never-defined, rgb(0, 128, 0)); }
+.undefined { color: var(--also-never-defined); }
+.undefbg { background-color: var(--no-such-var); }
+</style></head><body>
+<p>Default body text.</p>
+<p><a href="x.html">link</a></p>
+<p class="fallback">fallback</p>
+<p class="nested">nested</p>
+<p class="undefined">undefined</p>
+<p class="undefbg">undefbg</p>
+</body></html>
+""",
     "images.html": """\
 <html><body><p>A<img src="logo.png">B</p><p><img src="photo.jpg"></p><p><img src="anim.gif"></p></body></html>""",
     "page_a.html": """\
@@ -192,6 +211,13 @@ def cases():
                                         data("images.html")]),
         "images-tree":    ("headless", ["-w", "400", "-m", "tree", "-b", str(WORK),
                                         data("images.html")]),
+        # CSS custom properties. An unresolvable var() must drop the whole
+        # declaration: keeping the literal text made it parse as a colour,
+        # and an unparseable colour is opaque black -- which on a page
+        # setting both background and text through variables gave black on
+        # black. Wikipedia is such a page.
+        "cssvars-draw":   ("headless", ["-w", "500", "-m", "draw",
+                                        data("cssvars.html")]),
 
         # -- ANSI terminal backend --------------------------------------
         # The testable terminal backend: nothing to link and it works over a
@@ -483,6 +509,17 @@ Inside a bordered box.
 • First item
 • Second item
 A link and bold and code.
+""",
+    "cssvars-draw": """\
+[0] background (0,0 500x600) #ffffffff
+[1] text (8,16 51x16) #202122ff sans-serif/16 "Default"
+[2] text (63,16 35x16) #202122ff sans-serif/16 "body"
+[3] text (102,16 30x16) #202122ff sans-serif/16 "text."
+[4] text (8,48 24x16) #3366ccff sans-serif/16 "link"
+[5] text (8,80 54x16) #cc0000ff sans-serif/16 "fallback"
+[6] text (8,112 48x16) #008000ff sans-serif/16 "nested"
+[7] text (8,144 70x16) #202122ff sans-serif/16 "undefined"
+[8] text (8,176 58x16) #202122ff sans-serif/16 "undefbg"
 """,
     "entities-text": """\
 Entities: & < > "   © —

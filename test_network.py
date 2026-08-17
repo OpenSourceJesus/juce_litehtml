@@ -13,6 +13,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import gzip
 import http.server
 import socketserver
 import subprocess
@@ -82,6 +83,27 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self.send_response(302)
             self.send_header("Location", "/loop")
             self.end_headers()
+        elif p == "/gzipped.html":
+            # Compressed even though the request asked for identity, which is
+            # what a CDN in front of a large site generally does.
+            body = (b"<html><head><title>Gzipped</title>"
+                    b'<link rel="stylesheet" href="/gzipped.css"></head><body>'
+                    b"<p class='v'>compressed</p></body></html>")
+            data = gzip.compress(body)
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html")
+            self.send_header("Content-Encoding", "gzip")
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+        elif p == "/gzipped.css":
+            data = gzip.compress(b":root{--c:#3366cc}.v{color:var(--c)}")
+            self.send_response(200)
+            self.send_header("Content-Type", "text/css")
+            self.send_header("Content-Encoding", "gzip")
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
         elif p == "/chunked.html":
             self.send_response(200)
             self.send_header("Content-Type", "text/html")
@@ -160,6 +182,17 @@ def main():
 
     rc, out, err = run(["--net", f"{base}/missing.html", "-m", "text"])
     check("reports 404", rc != 0 and "404" in err, err.strip())
+
+    # A compressed page, and a compressed stylesheet inside it. Without
+    # decompression both are binary noise: the page renders empty and every
+    # variable the stylesheet defines silently goes undefined.
+    rc, out, err = run(["--net", f"{base}/gzipped.html", "-m", "text"])
+    check("decompresses gzip", rc == 0 and "compressed" in out,
+          (out + err).strip()[:80])
+
+    rc, out, err = run(["--net", f"{base}/gzipped.html", "-m", "draw"])
+    check("uses variables from a gzipped stylesheet", "#3366cc" in out,
+          out.strip()[:120])
 
     if args.tls:
         rc, out, err = run(["--net", args.tls, "-m", "stats"])
