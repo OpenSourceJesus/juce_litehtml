@@ -6,6 +6,7 @@
 #include "quickjs-libc.h"
 
 #include "../headless/crust_compat.h"
+#include "../headless/js_prelude.h"
 
 // A small node-like runner over the quickjs the browser already vendors.
 //
@@ -113,6 +114,25 @@ static void installGlobals (JSContext* ctx, const char* scriptName,
     JS_SetPropertyStr (ctx, global, "process", process);
 
     JS_FreeValue (ctx, global);
+}
+
+/** Installs the standard library functions this quickjs predates. */
+static void installPrelude (JSContext* ctx)
+{
+    const char* prelude = headless::jsPrelude();
+
+    JSValue result = JS_Eval (ctx, prelude, strlen (prelude), "<prelude>",
+                              JS_EVAL_TYPE_GLOBAL);
+
+    if (JS_IsException (result))
+    {
+        // A broken prelude is a bug here, not in the user's script, so say so
+        // rather than letting it look like their code failed.
+        fprintf (stderr, "internal error: the JS prelude failed to load\n");
+        js_std_dump_error (ctx);
+    }
+
+    JS_FreeValue (ctx, result);
 }
 
 /** Timers live on the os module; a script expects them as globals. */
@@ -332,6 +352,7 @@ int main (int argc, char** argv)
 
     js_std_add_helpers (ctx, scriptArgc, argv + scriptArgStart);
     installGlobals (ctx, scriptName.c_str(), scriptArgc, argv + scriptArgStart);
+    installPrelude (ctx);
     installTimers (ctx);
 
     int flags = 0;
@@ -359,12 +380,14 @@ int main (int argc, char** argv)
         status = 1;
     }
 
-    JS_FreeValue (ctx, result);
-
-    // Drains promise jobs and timers. Skipped for a parse-only run, which has
-    // executed nothing that could have queued any.
+    // Drain before releasing the result. A module compiled as an async
+    // function returns a promise that is still pending at the first
+    // top-level await, and dropping the last reference to it before the jobs
+    // run leaves the continuation with nothing to resume.
     if (status == 0 && checkOnly == 0)
         js_std_loop (ctx);
+
+    JS_FreeValue (ctx, result);
 
     js_std_free_handlers (rt);
     JS_FreeContext (ctx);
