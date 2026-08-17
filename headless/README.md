@@ -39,7 +39,7 @@ Reads from stdin when no file is given. Modes:
 | `all`   | all of the above |
 
 ```sh
-./build/headless/litehtml-headless -w 400 -m text headless/testdata/basic.html
+./build/headless/litehtml-headless -w 400 -m text page.html
 echo '<p>hi</p>' | ./build/headless/litehtml-headless -m tree
 ```
 
@@ -58,7 +58,20 @@ Only local paths are resolved; network loading belongs to the front ends.
 ./run_tests.py -k table   # run matching cases only
 ```
 
-Golden files live in `headless/expected/`. This works because output is
+The documents under test and their expected output are both embedded in
+`run_tests.py`, which writes the fixtures to `/tmp/litehtml-tests` on each
+run. There is no fixture directory to keep in sync with the tests that read
+it, and nothing to check in alongside a source change. Images are generated
+with PIL when it is installed and by built-in writers otherwise -- only their
+dimensions matter here, since the suite reads image headers rather than
+decoding them.
+
+Re-record with `./run_tests.py --update`, which rewrites the expected blocks
+inside the script itself. A case with no expected block is reported as `NEW`
+and fails; it is never adopted silently, or an empty run would record itself
+as correct and pass forever after.
+
+This works because output is
 deterministic: the container computes text metrics from a fixed width table
 rather than from system fonts, so the same input produces byte-identical
 output on any machine, at any optimisation level.
