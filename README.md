@@ -1,15 +1,240 @@
-# JUCE litehtml
-This is a JUCE module that provides integration of the [litehtml](https://github.com/litehtml/litehtml) HTML/CSS rendering engine with JUCE backend.
+# litehtml, most of a browser
 
-![screenshot](doc/screenshot.png)
+This began as a JUCE module wrapping the [litehtml](https://github.com/litehtml/litehtml)
+HTML/CSS engine. It is now also a small browser that runs without JUCE, without
+a window system, and — where it matters — without any third-party library at
+all.
 
-The web pages can be loaded from network (via `http://` or `https://`), but also locally, from a file (using `file://` scheme) or JUCE application or plugin binary resources (`res://` scheme).
+The engine is unchanged: litehtml does layout, [quickjs](https://github.com/bellard/quickjs)
+is there for scripting. What is new is everything around it, written so it can
+be lowered to C by [Crust](https://github.com/brentharts/crust).
 
-This module also attempts to add JavaScript support on top of the litehtml using [quickjs](https://github.com/bellard/quickjs) interpreter.
+```sh
+./build.py                                          # headless renderer + tests
+./build.py tui   && ./build/tui/litehtml-tui doc.html
+./build.py ncurses && ./build/ncurses/litehtml-ncurses --net https://example.com/
+```
 
-Litehtml offers rather limited capabilities, but it is good enough to render rich documents, which can be useful, for example, to show help pages or documentation within JUCE applications or plugins.
+## What exists
 
-> This project is WIP.
+| Target | What it is | Needs |
+|---|---|---|
+| `headless` | Renderer with synthetic fonts; text/tree/display-list dumps | nothing |
+| `cairo` | Real font metrics, renders to PNG | cairo |
+| `tui` | Terminal rendering via ANSI escape codes | nothing |
+| `ncurses` | Interactive terminal browser | libncursesw |
+| `notcurses` | Interactive terminal browser with inline images | libnotcurses |
+| `gtk` | Not written yet; the target is wired and waiting | gtk3 |
+
+All of them share one container hierarchy and one loader. A front end overrides
+the font metrics and the paint calls; everything else — image sizing,
+stylesheet and script loading, media features, link collection — is inherited.
+
+Both terminal browsers do links (`tab` to select, `enter` to follow),
+back-history (`backspace`), scrolling, and documents over http/https.
+
+```
+ Remote Index
+ Served over HTTP with an external stylesheet.
+ ┌────────┐
+ │ [img]  │  inline image
+ └────────┘
+ Links: deep page and root-relative.
+─────────────────────────────────────────────
+ Remote Index  -> sub/deep.html
+```
+
+## Building
+
+`build.py` replaces make and cmake for everything except the JUCE module. It
+compiles each translation unit, tracks header dependencies through gcc's
+`-MMD`, and rebuilds only what changed — the compile command itself is part of
+the cache key, so changing a flag forces a rebuild.
+
+```sh
+./build.py --list          # targets, and whether their deps are present
+./build.py cairo --release
+./build.py --clean tui
+./build.py -j 8
+```
+
+On Ubuntu, for the optional targets:
+
+```sh
+sudo apt install libcairo2-dev libncursesw5-dev libnotcurses-dev libssl-dev
+```
+
+None of them are required. TLS in particular is probed for: with openssl
+present the loader compiles with `-DHEADLESS_TLS` and https works; without it
+everything still builds and https reports that it is unsupported rather than
+failing to link.
+
+## Testing
+
+```sh
+./run_tests.py        # 22 golden cases, entirely offline
+./test_network.py     # 10 checks against a server it starts itself
+./check_crust.py      # scans our own sources for constructs Crust refuses
+```
+
+The golden suite works because **output is deterministic**. The headless
+container computes text metrics from a fixed width table rather than from
+system fonts, so the same input produces byte-identical output on any machine
+at any optimisation level. That property has already paid for itself twice: it
+turned a from-scratch rewrite of every file into a verifiable change, and it
+catches layout regressions that would otherwise need a human to eyeball.
+
+Write assertions against `text` and `tree`. The `ascii` dump is a coarse grid
+meant for eyeballing structure, not for comparison.
+
+---
+
+# The C++ subset
+
+Everything under `headless/`, `terminal/` and `cairo/` is written in the
+**Crust C++ subset** (`CPPRUST.md`), which `tools/cpprust.py` lowers to C. The
+same sources also build with an ordinary C++ compiler, and that dual
+requirement is what most of the style below exists to satisfy.
+
+The guiding rule from the Crust side is worth repeating, because it explains
+why the constraints are hard rather than advisory:
+
+> **Anything the lowering cannot do correctly is reported, not approximated.**
+
+A refusal is the contract. Code that leans on something outside the subset does
+not degrade gracefully — it stops translating.
+
+## Rules to follow
+
+**No standard library beyond what Crust supplies.** That is `string`,
+`vector<T>`, `ownvector<T>`, `map`, `unique_ptr`, `shared_ptr`, and nothing
+else. In particular:
+
+- No `<sstream>`, `<fstream>`, or iostreams. Build text by appending to a
+  `std::string` (`headless/strbuf.h`); do file IO with `fopen`/`fread`.
+- No `<algorithm>`. Write the loop. The sort in `dump.cpp` is a hand-written
+  insertion sort for exactly this reason.
+- No `std::max`, `std::min`, `std::function`, `std::pair`, `std::optional`.
+
+**Owning elements go in `ownvector<T>`, not `vector<T>`.** `vector` stores by
+assignment, which would leave two owners of one resource. `ownvector`
+copy-constructs and destroys each element. `crust_compat.h` aliases it to
+`vector` for a normal C++ build, behind an `#ifndef CRUST` the lowering
+evaluates away.
+
+**No reference returns.** Return a pointer. Lowering `T&` to `T*` would
+silently change what assignment through the result means at every call site, so
+it is refused — `operator[]` and `operator*` are the only exceptions.
+
+**No default function arguments.** Spell every argument at every call.
+
+**No capturing lambdas in a condition.** They are inlined at the call site, so
+they cannot appear in a loop condition, in a `&&`/`||` operand, or in a
+ternary, where the body would not run exactly once. The safest habit is to
+avoid lambdas here entirely; this codebase has none.
+
+**No `enum class`, `constexpr`, `emplace_back`, `vector<bool>`, exceptions,
+`dynamic_cast`, `typeid`, `goto`, array `new`/`delete[]`, multiple
+inheritance.**
+
+**Range-`for` only over a nameable chain.** `for (auto& x : v)` is fine;
+`for (auto& x : getThings())` is not, because the lowering has to read a length
+from something it can name. Index loops are the default here.
+
+**Single inheritance only, and it is used deliberately.** `Container` derives
+from `litehtml::document_container`; `CairoContainer` and `TerminalContainer`
+derive from `Container`. That chain is fine. A second base is not.
+
+**Include order matters when a C library has macros.** `curses.h` defines
+`border`, `line` and `box` as macros and litehtml has a class called `border`,
+so litehtml headers come first. This is a plain C++ problem, not a Crust one,
+but it is the kind of thing that costs an hour.
+
+`./check_crust.py` enforces the mechanical parts of this. It is a text scan,
+not a parser — the same position `cpprust.py` is in — so it catches known-bad
+constructs early but cannot prove a file lowers.
+
+## Things inherited from the vendored engine
+
+Two are worth knowing before touching litehtml:
+
+- **litehtml here depends on quickjs.** `litehtml/include/context.h` includes
+  `quickjs.h`, so even the headless build links the JS engine. This path is
+  free of JUCE and GTK, not free of dependencies.
+- **litehtml's `el_script` cannot read its own attributes.** It derives from
+  `litehtml::element`, whose `get_attr()` is a stub returning the default, so
+  `src` is never found and `import_script()` never fires. Both this project and
+  the JUCE module work around it by supplying a replacement derived from
+  `html_tag`. If an element type mysteriously ignores its attributes, check
+  what it derives from first.
+
+GCC 13 also rejects `litehtml/include/element.h` under `-Wchanges-meaning`,
+where a member shadows its own class name. `build.py` suppresses the warning
+rather than patching vendored code; revisit if this is ever rebased onto
+upstream litehtml.
+
+---
+
+## How the pieces fit
+
+```
+litehtml + quickjs            (vendored, unchanged)
+        │
+headless/container.*          document_container: records a display list
+   ├─ url.* loader.*          URLs, http/https/file, caching
+   ├─ imageinfo.*             image dimensions from file headers
+   ├─ links.*                 anchors and their boxes, after layout
+   └─ dump.*                  text / tree / display-list / ascii output
+        │
+        ├─ cairo/             real fonts, PNG output
+        └─ terminal/          cell-aligned metrics, one grid
+              ├─ ansi         escape codes, no dependencies
+              ├─ ncurses      interactive
+              └─ notcurses    interactive, inline images
+```
+
+Two design decisions carry most of the weight.
+
+**The display list.** The base container never rasterises; it records paint
+calls. A front end that draws for real still calls the base first, so the dump
+modes and the golden tests keep working on a container that also draws. This is
+why a headless test can assert on what a GTK window would have shown.
+
+**Cell-aligned metrics.** litehtml lays out in pixels. The terminal container
+declares one cell to be exactly 8 pixels and gives every glyph a whole-cell
+advance, so every x coordinate divides exactly by the cell width and the layout
+lands on the grid with nothing to round. Line breaking then happens at the
+right column for free. Compare the `ascii` dump mode, which rounds a
+proportional layout onto a grid afterwards and merges words together.
+
+Details are in [headless/README.md](headless/README.md),
+[headless/NETWORK.md](headless/NETWORK.md) and
+[terminal/README.md](terminal/README.md).
+
+## Where this is going
+
+Nearest first:
+
+- **Charset handling.** Everything is assumed UTF-8. A page served as latin-1
+  renders wrongly, and much of the older web is latin-1. This is the difference
+  between browsing the web and browsing the subset of it that agrees with us.
+- **Compression.** We send `Accept-Encoding: identity`; a server that ignores
+  that and gzips anyway produces garbage rather than an error.
+- **Fragment navigation.** `#anchor` is refused, though the element is in the
+  tree with a known y position. Both terminal browsers would get it at once.
+- **GTK.** The target is wired and the container it needs already exists —
+  `CairoContainer` does the drawing, GTK only supplies a different `cairo_t`.
+- **Forward history**, connection reuse, `Cache-Control`.
+
+Further out: form controls, text selection, and letting quickjs actually run
+the scripts the loader is already fetching.
+
+---
+
+# The JUCE module
+
+The original module is unchanged and still builds through cmake. Nothing above
+touches it.
 
 ## Compilation
 
