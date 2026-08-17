@@ -77,6 +77,12 @@ failing to link.
 ./check_crust.py      # scans our own sources for constructs Crust refuses
 ```
 
+All three are self-contained. `run_tests.py` embeds both the documents under
+test and their expected output, writing fixtures to `/tmp/litehtml-tests` as
+it runs; `test_network.py` starts its own loopback server. So there are no
+fixture directories to keep in sync, and no suite depends on the outside
+world.
+
 The golden suite works because **output is deterministic**. The headless
 container computes text metrics from a fixed width table rather than from
 system fonts, so the same input produces byte-identical output on any machine
