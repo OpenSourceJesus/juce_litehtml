@@ -61,23 +61,86 @@ void litehtml::style::combine( const litehtml::style& src )
 	}
 }
 
-void litehtml::style::subst_vars( tstring& str, const element* el )
+bool litehtml::style::subst_vars( tstring& str, const element* el )
 {
-	if (!el) return;
+	if (!el) return true;
+
+	// Guards against a variable that refers to itself.
+	int guard = 0;
 
 	while (1)
 	{
+		if (++guard > 32) return false;
+
 		auto start = str.find(_t("var("));
-		if (start == -1) break;
+		if (start == tstring::npos) break;
 		if (start > 0 && isalnum(str[start - 1])) break;
-		auto end = str.find(_t(")"), start + 4);
-		if (end == -1) break;
-		auto name = str.substr(start + 4, end - start - 4);
+
+		// Find the ')' that closes this var(, not the first one in the
+		// string: a fallback may itself contain parentheses, as in
+		// var(--x, rgb(1, 2, 3)).
+		auto scan = start + 4;
+		int depth = 1;
+		auto end = tstring::npos;
+
+		while (scan < str.length())
+		{
+			if (str[scan] == _t('(')) depth++;
+			else if (str[scan] == _t(')'))
+			{
+				depth--;
+				if (!depth) { end = scan; break; }
+			}
+			scan++;
+		}
+
+		if (end == tstring::npos) return false;
+
+		auto inner = str.substr(start + 4, end - start - 4);
+
+		// Split the name from its optional fallback at the first comma
+		// that is not inside parentheses.
+		tstring name = inner;
+		tstring fallback;
+		bool have_fallback = false;
+		depth = 0;
+
+		for (size_t i = 0; i < inner.length(); i++)
+		{
+			if (inner[i] == _t('(')) depth++;
+			else if (inner[i] == _t(')')) depth--;
+			else if (inner[i] == _t(',') && !depth)
+			{
+				name = inner.substr(0, i);
+				fallback = inner.substr(i + 1);
+				have_fallback = true;
+				break;
+			}
+		}
+
 		trim(name);
+		trim(fallback);
+
 		auto val = el->get_style_property(name.c_str(), true);
-		if (!val) break;
-		str.replace(start, end - start + 1, val);
+
+		if (val)
+		{
+			str.replace(start, end - start + 1, val);
+		}
+		else if (have_fallback)
+		{
+			str.replace(start, end - start + 1, fallback);
+		}
+		else
+		{
+			// Undefined and no fallback. In CSS this makes the declaration
+			// invalid at computed-value time, so the caller drops it and
+			// the inherited or initial value applies.
+			return false;
+		}
 	}
+
+	return true;
 }
 
 void litehtml::style::add_property( const tchar_t* name, const tchar_t* _val, const tchar_t* baseurl, bool important, const element* el )
@@ -88,7 +151,15 @@ void litehtml::style::add_property( const tchar_t* name, const tchar_t* _val, co
 	}
 
 	tstring val = _val;
-	subst_vars(val, el);
+
+	// A declaration whose var() cannot be resolved is dropped rather than
+	// kept as literal text. Keeping it made every such colour parse as
+	// opaque black, which on a page that sets both background and text
+	// through variables produced black on black.
+	if (!subst_vars(val, el))
+	{
+		return;
+	}
 
 	// Add baseurl for background image 
 	if(	!t_strcmp(name, _t("background-image")))
