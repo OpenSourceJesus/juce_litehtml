@@ -10,6 +10,7 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <zlib.h>
 
 #ifdef HEADLESS_TLS
 #include <openssl/err.h>
@@ -187,6 +188,71 @@ static int headerValue (const char* headers, const char* name, std::string* out)
     }
 
     return 0;
+}
+
+/** Inflates a gzip or zlib stream in place. Returns 1 on success.
+
+    Servers compress whether or not identity was requested -- a CDN in front
+    of a large site generally always will -- so this has to exist even though
+    the request asks for uncompressed data. Without it the body is binary
+    noise, which for HTML means an empty page and for CSS means every
+    variable in it silently goes undefined.
+ */
+static int inflateBody (std::string* body, int rawDeflate)
+{
+    if (body == 0 || body->empty())
+        return 0;
+
+    z_stream zs;
+    memset (&zs, 0, sizeof (zs));
+
+    // 47 = auto-detect gzip or zlib headers. A server claiming "deflate"
+    // sometimes means raw deflate with no header at all, hence the retry.
+    const int windowBits = (rawDeflate != 0) ? -15 : 47;
+
+    if (inflateInit2 (&zs, windowBits) != Z_OK)
+        return 0;
+
+    zs.next_in = (Bytef*) body->c_str();
+    zs.avail_in = (uInt) body->size();
+
+    std::string out;
+    char buffer[32768];
+    int status = Z_OK;
+
+    while (status != Z_STREAM_END)
+    {
+        zs.next_out = (Bytef*) buffer;
+        zs.avail_out = 32768;
+
+        status = inflate (&zs, Z_NO_FLUSH);
+
+        if (status != Z_OK && status != Z_STREAM_END)
+        {
+            inflateEnd (&zs);
+            return 0;
+        }
+
+        const int produced = 32768 - (int) zs.avail_out;
+        int k = 0;
+
+        while (k < produced)
+        {
+            out.push_back (buffer[k]);
+            k = k + 1;
+        }
+
+        if (produced == 0 && status != Z_STREAM_END)
+            break;
+    }
+
+    inflateEnd (&zs);
+
+    if (out.empty())
+        return 0;
+
+    *body = out;
+    return 1;
 }
 
 /** Decodes a chunked transfer-encoded body in place. */
@@ -464,9 +530,13 @@ int ResourceLoader::fetchHttp (Url* url, std::string* body, Url* finalUrl, int d
         }
     }
 
-    request.append ("\r\nUser-Agent: litehtml-headless/1.0\r\n");
-    request.append ("Accept: */*\r\n");
-    request.append ("Accept-Encoding: identity\r\n");
+    // A conventional User-Agent token: some large sites answer 403 to
+    // anything that does not look like a browser, and being refused outright
+    // is a worse failure than rendering imperfectly.
+    request.append ("\r\nUser-Agent: Mozilla/5.0 (X11; Linux x86_64) "
+                    "litehtml-headless/1.0\r\n");
+    request.append ("Accept: text/html,application/xhtml+xml,*/*\r\n");
+    request.append ("Accept-Encoding: gzip, deflate, identity\r\n");
     request.append ("Connection: close\r\n\r\n");
 
     int sent = 0;
@@ -581,6 +651,42 @@ int ResourceLoader::fetchHttp (Url* url, std::string* body, Url* finalUrl, int d
                 error.assign ("malformed chunked response");
                 return 0;
             }
+        }
+    }
+
+    std::string contentEncoding;
+
+    if (headerValue (h, "Content-Encoding", &contentEncoding) != 0)
+    {
+        if (strcasecmp (contentEncoding.c_str(), "gzip") == 0)
+        {
+            if (inflateBody (&content, 0) == 0)
+            {
+                error.assign ("could not decompress a gzip response");
+                return 0;
+            }
+        }
+        else if (strcasecmp (contentEncoding.c_str(), "deflate") == 0)
+        {
+            // Try with a header first, then as a raw stream.
+            std::string copy = content;
+
+            if (inflateBody (&content, 0) == 0)
+            {
+                content = copy;
+
+                if (inflateBody (&content, 1) == 0)
+                {
+                    error.assign ("could not decompress a deflate response");
+                    return 0;
+                }
+            }
+        }
+        else if (strcasecmp (contentEncoding.c_str(), "identity") != 0)
+        {
+            error.assign ("unsupported Content-Encoding: ");
+            error.append (contentEncoding.c_str());
+            return 0;
         }
     }
 

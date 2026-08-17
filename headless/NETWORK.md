@@ -50,6 +50,19 @@ resolve against the wrong directory.
   `SSL_set1_host` verification would pass for any valid certificate from
   anyone, which is not verification.
 
+## Compression
+
+gzip and deflate are decompressed with zlib. This is not optional in practice:
+a CDN in front of a large site compresses whether or not the request asked it
+to, and an undecompressed body is binary noise -- which for HTML means an
+empty page, and for CSS means every variable that stylesheet defines silently
+goes undefined. That second one is how it usually shows up, since the symptom
+appears in the page's colours rather than anywhere near the network code.
+
+The User-Agent carries a conventional `Mozilla/5.0` token, because some large
+sites answer 403 to anything that does not look like a browser, and being
+refused outright is a worse failure than rendering imperfectly.
+
 ## Caching
 
 Everything is cached by absolute URL, because a page pulls the same resource
@@ -88,8 +101,6 @@ tests in `run_tests.py` stay entirely offline.
 
 - No `Content-Type` handling: a document is assumed to be HTML and the charset
   is assumed to be UTF-8. A page served as latin-1 will render wrongly.
-- No compression: `Accept-Encoding: identity` is sent, so a server that
-  ignores it and gzips anyway will produce garbage.
 - No cookies, no authentication, no POST.
 - No connection reuse -- one connection per resource, `Connection: close`.
   A page with many images pays a handshake each time.
