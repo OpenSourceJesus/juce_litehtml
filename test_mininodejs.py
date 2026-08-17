@@ -105,7 +105,10 @@ FEATURES = [
     ("ES2021+", "static class blocks", "class A{static x; static{A.x=1}} if(A.x===1) console.log('ok')"),
     ("ES2021+", "Array.at", "if([1,2,3].at(-1)===3) console.log('ok')"),
     ("ES2021+", "Object.hasOwn", "if(Object.hasOwn({a:1},'a')) console.log('ok')"),
-    ("ES2021+", "Array.findLast", "if([1,2,3].findLast(x=>x<3)===2) console.log('ok')"),
+    ("ES2021+", "Array.findLast", "if([1,2,3].findLast(x=>x<3)===2&&[1,2,3].findLastIndex(x=>x<3)===1) console.log('ok')"),
+    ("ES2021+", "String.at", "if('abc'.at(-1)==='c') console.log('ok')"),
+    ("ES2021+", "structuredClone cycles", "const o={a:1}; o.self=o; const c=structuredClone(o); if(c.self===c&&c.a===1) console.log('ok')"),
+    ("ES2021+", "structuredClone types", "const c=structuredClone({d:new Date(0),m:new Map([['k',1]]),s:new Set([1]),t:new Uint8Array([1,2])}); if(c.d.getUTCFullYear()===1970&&c.m.get('k')===1&&c.s.has(1)&&c.t[1]===2) console.log('ok')"),
     ("ES2021+", "top-level await", "// module\nconst v = await Promise.resolve(1); if(v===1) console.log('ok')"),
     ("ES2021+", "import.meta", "// module\nif(typeof import.meta==='object') console.log('ok')"),
     ("ES2021+", "structuredClone", "const o=structuredClone({a:1}); if(o.a===1) console.log('ok')"),
@@ -133,6 +136,10 @@ EXPECTED_SUPPORTED = {
     "optional chaining", "nullish coalescing", "globalThis",
     "JSON round trip", "Unicode strings", "Date", "TypedArray", "WeakMap",
     "getter/setter", "labelled break", "optional catch binding",
+    "String.at", "structuredClone cycles", "structuredClone types",
+    # Supplied by the prelude in headless/js_prelude.h rather than by the
+    # engine, which is why they are expected despite quickjs predating them.
+    "Array.at", "Array.findLast", "Object.hasOwn", "structuredClone",
 }
 
 

@@ -246,11 +246,14 @@ Nearest first:
 
 **JavaScript.** `mininodejs` runs snippets against the same engine the browser
 links, without a page in the way (see [mininode/README.md](mininode/README.md)).
-Its feature matrix puts the engine at 52 of 58, with ES2015 through ES2020
-essentially complete and everything missing being ES2022 or later. The
-vendored quickjs is from March 2021 and upstream has since implemented all of
-those gaps, so the first question for modern-syntax support is whether to
-rebase rather than to patch.
+Its feature matrix puts the engine at 59 of 61, with ES2015 through ES2020
+essentially complete. The missing standard library functions are supplied by a
+guarded JavaScript prelude the browser context shares. What remains is two
+parser gaps, static class blocks and top-level await, and both are engine work
+rather than additions -- see `mininode/README.md` for why top-level await in
+particular is not the two-line change it appears to be. The vendored quickjs
+is from March 2021 and upstream implemented both in 2023, so the open question
+is whether to rebase.
 
 Further out: form controls, text selection, and letting quickjs actually run
 the scripts the loader is already fetching.
