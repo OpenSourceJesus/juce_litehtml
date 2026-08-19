@@ -29,7 +29,12 @@ namespace litehtml
 				const JSClassDef def {
 					className,
 					[](JSRuntime*, JSValue value) {
-                    	if (auto* ref { static_cast<typename T::js_object_ref*>(JS_GetOpaque (value, T::jsClassID)) })
+						/* crust: `auto*` replaced by the written type. The
+						   deduction pass reads types as they are spelled, and
+						   a declaration inside an `if` condition gave it
+						   nothing to read. */
+						typename T::js_object_ref* ref = static_cast<typename T::js_object_ref*>(JS_GetOpaque (value, T::jsClassID));
+						if (ref != nullptr)
 						{
 							delete ref;
 						}
@@ -39,11 +44,13 @@ namespace litehtml
 					nullptr
 				};
 
-				[[maybe_unused]] const auto res = JS_NewClass(m_jsRuntime, T::jsClassID, &def);
+				/* crust: `auto` -> `int`, the declared return type of JS_NewClass. */
+				[[maybe_unused]] const int res = JS_NewClass(m_jsRuntime, T::jsClassID, &def);
 				assert (res == 0);
 			}
 
-			auto proto { JS_NewObject(m_jsContext) };
+			/* crust: `auto` -> `JSValue`, the declared return type of JS_NewObject. */
+			JSValue proto { JS_NewObject(m_jsContext) };
 			T::register_js_prototype(m_jsContext, proto);
 			JS_SetClassProto(m_jsContext, T::jsClassID, proto);
 		}
