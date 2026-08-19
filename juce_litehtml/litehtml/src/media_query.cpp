@@ -23,7 +23,7 @@ std::shared_ptr<litehtml::media_query> litehtml::media_query::create_from_string
 	string_vector tokens;
 	split_string(str, tokens, _t(" \t\r\n"), _t(""), _t("("));
 
-	for(auto & token : tokens)
+	for(tstring & token : tokens)
 	{
 		if(token == _t("not"))
 		{
@@ -102,7 +102,7 @@ bool litehtml::media_query::check( const media_features& features ) const
 	if(m_media_type == media_type_all || m_media_type == features.type)
 	{
 		res = true;
-		for(auto expression : m_expressions)
+		for(media_query_expression expression : m_expressions)
 		{
 			if(!expression.check(features))
 			{
@@ -129,7 +129,7 @@ std::shared_ptr<litehtml::media_query_list> litehtml::media_query_list::create_f
 	string_vector tokens;
 	split_string(str, tokens, _t(","));
 
-	for(auto & token : tokens)
+	for(tstring & token : tokens)
 	{
 		trim(token);
 		lcase(token);
@@ -152,7 +152,7 @@ bool litehtml::media_query_list::apply_media_features( const media_features& fea
 {
 	bool apply = false;
 	
-	for(auto & query : m_queries)
+	for(std::shared_ptr<media_query> & query : m_queries)
 	{
 		if(query->check(features))
 		{

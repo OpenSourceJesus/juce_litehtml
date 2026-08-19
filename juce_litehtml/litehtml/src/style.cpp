@@ -19,7 +19,7 @@ void litehtml::style::parse( const tchar_t* txt, const tchar_t* baseurl, const e
 	std::vector<tstring> properties;
 	split_string(txt, properties, _t(";"), _t(""), _t("\"'"));
 
-	for(const auto & property : properties)
+	for(const tstring & property : properties)
 	{
 		parse_property(property, baseurl, el);
 	}

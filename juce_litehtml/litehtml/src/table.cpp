@@ -359,7 +359,7 @@ int litehtml::table_grid::calc_table_width(int block_width, bool is_auto, int& m
 				fixed_width += m_columns[col].width;
 			}
 		}
-		auto scale = (float) (100.0 / percent);
+		float scale = (float) (100.0 / percent);
 		cur_width = 0;
 		for(int col = 0; col < m_cols_count; col++)
 		{

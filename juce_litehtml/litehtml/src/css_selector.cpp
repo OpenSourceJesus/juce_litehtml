@@ -179,7 +179,7 @@ bool litehtml::css_selector::parse( const tstring& text )
 		tokens.pop_back();
 	}
 
-	for(const auto & token : tokens)
+	for(const tstring & token : tokens)
 	{
 		left += token;
 	}
