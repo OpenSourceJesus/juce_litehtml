@@ -794,12 +794,13 @@ void litehtml::document::create_node(void* gnode, elements_vector& elements, boo
 				{
 					child.clear();
 					create_node(static_cast<GumboNode*> (node->v.element.children.data[i]), child, parseTextNode);
-					std::for_each(child.begin(), child.end(),
-						[&ret](std::shared_ptr<litehtml::element>& el)
-						{
-							ret->appendChild(el);
-						}
-					);
+					/* crust: indexed loop rather than for_each with a
+					   lambda. The subset inlines a lambda at its call
+					   sites, so it needs one bound to a name. */
+					for (int ci = 0; ci < (int)child.size(); ci++)
+					{
+						ret->appendChild(child[ci]);
+					}
 				}
 				elements.push_back(std::move(ret));
 			}
@@ -905,12 +906,11 @@ void litehtml::document::fix_table_children(std::shared_ptr<litehtml::element>& 
 		annon_tag->add_style(tstring(_t("display:")) + disp_str, _t(""));
 		annon_tag->parent(el_ptr);
 		annon_tag->parse_styles();
-		std::for_each(tmp.begin(), tmp.end(),
-			[&annon_tag](std::shared_ptr<litehtml::element>& el)
-			{
-				annon_tag->appendChild(el);
-			}
-		);
+		/* crust: indexed loop rather than for_each with a lambda. */
+		for (int ti = 0; ti < (int)tmp.size(); ti++)
+		{
+			annon_tag->appendChild(tmp[ti]);
+		}
 		first_iter = el_ptr->m_children.insert(first_iter, annon_tag);
 		cur_iter = first_iter + 1;
 		while (cur_iter != el_ptr->m_children.end() && (*cur_iter)->parent() != el_ptr)
@@ -959,29 +959,33 @@ void litehtml::document::fix_table_parent(std::shared_ptr<litehtml::element>& el
 
 	if (parent->get_display() != disp)
 	{
-		auto this_element = std::find_if(parent->m_children.begin(), parent->m_children.end(),
-			[&](std::shared_ptr<litehtml::element>& el)
+		/* crust: an index search rather than find_if with a lambda, and
+		   indices rather than iterators throughout. The subset inlines a
+		   lambda at its call sites so it needs one bound to a name, and it
+		   has no iterator category -- an index says the same thing here and
+		   compiles the same under either toolchain. */
+		int this_index = -1;
+		for (int k = 0; k < (int)parent->m_children.size(); k++)
+		{
+			if (parent->m_children[k] == el_ptr)
 			{
-				if (el == el_ptr)
-				{
-					return true;
-				}
-				return false;
+				this_index = k;
+				break;
 			}
-		);
-		if (this_element != parent->m_children.end())
+		}
+		if (this_index >= 0)
 		{
 			style_display el_disp = el_ptr->get_display();
-			auto first = this_element;
-			auto last = this_element;
-			auto cur = this_element;
+			int first = this_index;
+			int last = this_index;
+			int cur = this_index;
 
 			// find first element with same display
 			while (true)
 			{
-				if (cur == parent->m_children.begin()) break;
+				if (cur == 0) break;
 				cur--;
-				if ((*cur)->is_table_skip() || (*cur)->get_display() == el_disp)
+				if (parent->m_children[cur]->is_table_skip() || parent->m_children[cur]->get_display() == el_disp)
 				{
 					first = cur;
 				}
@@ -992,13 +996,13 @@ void litehtml::document::fix_table_parent(std::shared_ptr<litehtml::element>& el
 			}
 
 			// find last element with same display
-			cur = this_element;
+			cur = this_index;
 			while (true)
 			{
 				cur++;
-				if (cur == parent->m_children.end()) break;
+				if (cur >= (int)parent->m_children.size()) break;
 
-				if ((*cur)->is_table_skip() || (*cur)->get_display() == el_disp)
+				if (parent->m_children[cur]->is_table_skip() || parent->m_children[cur]->get_display() == el_disp)
 				{
 					last = cur;
 				}
@@ -1013,14 +1017,12 @@ void litehtml::document::fix_table_parent(std::shared_ptr<litehtml::element>& el
 			annon_tag->add_style(tstring(_t("display:")) + disp_str, _t(""));
 			annon_tag->parent(parent);
 			annon_tag->parse_styles();
-			std::for_each(first, last + 1,
-				[&annon_tag](std::shared_ptr<litehtml::element>& el)
-				{
-					annon_tag->appendChild(el);
-				}
-			);
-			first = parent->m_children.erase(first, last + 1);
-			parent->m_children.insert(first, annon_tag);
+			for (int ai = first; ai <= last; ai++)
+			{
+				annon_tag->appendChild(parent->m_children[ai]);
+			}
+			parent->m_children.erase(parent->m_children.begin() + first, parent->m_children.begin() + last + 1);
+			parent->m_children.insert(parent->m_children.begin() + first, annon_tag);
 		}
 	}
 }
