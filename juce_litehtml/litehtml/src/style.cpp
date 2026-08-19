@@ -72,16 +72,18 @@ bool litehtml::style::subst_vars( tstring& str, const element* el )
 	{
 		if (++guard > 32) return false;
 
-		auto start = str.find(_t("var("));
+		/* crust: written types rather than `auto` -- the deduction pass
+		   reads types as they are spelled. */
+		tstring::size_type start = str.find(_t("var("));
 		if (start == tstring::npos) break;
 		if (start > 0 && isalnum(str[start - 1])) break;
 
 		// Find the ')' that closes this var(, not the first one in the
 		// string: a fallback may itself contain parentheses, as in
 		// var(--x, rgb(1, 2, 3)).
-		auto scan = start + 4;
+		tstring::size_type scan = start + 4;
 		int depth = 1;
-		auto end = tstring::npos;
+		tstring::size_type end = tstring::npos;
 
 		while (scan < str.length())
 		{
@@ -96,7 +98,7 @@ bool litehtml::style::subst_vars( tstring& str, const element* el )
 
 		if (end == tstring::npos) return false;
 
-		auto inner = str.substr(start + 4, end - start - 4);
+		tstring inner = str.substr(start + 4, end - start - 4);
 
 		// Split the name from its optional fallback at the first comma
 		// that is not inside parentheses.
@@ -121,7 +123,7 @@ bool litehtml::style::subst_vars( tstring& str, const element* el )
 		trim(name);
 		trim(fallback);
 
-		auto val = el->get_style_property(name.c_str(), true);
+		const tchar_t* val = el->get_style_property(name.c_str(), true);
 
 		if (val)
 		{
