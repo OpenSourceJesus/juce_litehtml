@@ -59,7 +59,7 @@ void litehtml::context::js_register_method(JSContext* ctx, JSValue prototype, co
 void litehtml::context::js_register_constructor(JSContext* ctx, JSValue prototype, const tchar_t* name, JSCFunction func, int numArgs)
 {
     JSValue clazz { JS_NewCFunction2(ctx, func, name, numArgs, JS_CFUNC_constructor, 0) };
-    auto global { JS_GetGlobalObject(ctx) };
+    JSValue global { JS_GetGlobalObject(ctx) };
     JS_DefinePropertyValueStr(ctx, global, name, JS_DupValue(ctx, clazz), JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
     JS_SetConstructor(ctx, clazz, prototype);
     JS_FreeValue(ctx, global);
@@ -68,7 +68,7 @@ void litehtml::context::js_register_constructor(JSContext* ctx, JSValue prototyp
 
 void litehtml::context::js_register_property(JSContext* ctx, JSValue prototype, const tchar_t* name, JSGetter getter, JSSetter setter)
 {
-    auto aProperty { JS_NewAtom(ctx, name) };
+    JSAtom aProperty { JS_NewAtom(ctx, name) };
     int flags { JS_PROP_CONFIGURABLE };
 
     if (getter != nullptr)
@@ -77,8 +77,8 @@ void litehtml::context::js_register_property(JSContext* ctx, JSValue prototype, 
     if (setter != nullptr)
         flags |= JS_PROP_WRITABLE;
 
-    auto get { getter != nullptr ? JS_NewCFunction2(ctx, (JSCFunction*)getter, "<get>", 0, JS_CFUNC_getter, 0) : JS_UNDEFINED };
-    auto set { setter != nullptr ? JS_NewCFunction2(ctx, (JSCFunction*)setter, "<set>", 1, JS_CFUNC_setter, 0) : JS_UNDEFINED };
+    JSValue get { getter != nullptr ? JS_NewCFunction2(ctx, (JSCFunction*)getter, "<get>", 0, JS_CFUNC_getter, 0) : JS_UNDEFINED };
+    JSValue set { setter != nullptr ? JS_NewCFunction2(ctx, (JSCFunction*)setter, "<set>", 1, JS_CFUNC_setter, 0) : JS_UNDEFINED };
 
     JS_DefinePropertyGetSet(ctx, prototype, aProperty, get, set, flags);
     JS_FreeAtom(ctx, aProperty);

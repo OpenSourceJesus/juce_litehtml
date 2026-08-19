@@ -13,7 +13,8 @@ litehtml::element::js_object_ref::js_object_ref(const std::shared_ptr<litehtml::
 
 litehtml::element::js_object_ref::~js_object_ref()
 {
-	if (auto el { element.lock() })
+	std::shared_ptr<litehtml::element> el { element.lock() };
+	if (el)
 		el->get_document()->remove_from_stash(el);
 }
 
@@ -38,7 +39,8 @@ litehtml::element::~element()
 
 void litehtml::element::init_js_value()
 {
-	if (auto doc { m_doc.lock() })
+	std::shared_ptr<litehtml::document> doc { m_doc.lock() };
+	if (doc)
 	{
 		m_jsContext = doc->context()->js_context();
 		m_jsValue   = JS_NewObjectClass(m_jsContext, jsClassID);
@@ -51,7 +53,8 @@ void litehtml::element::init_js_value()
 
 static std::shared_ptr<litehtml::element> js_get_element(JSContext* ctx, JSValueConst self)
 {
-	if (auto* ref { litehtml::context::js_get_object_ref<litehtml::element>(self) })
+	litehtml::element::js_object_ref* ref { litehtml::context::js_get_object_ref<litehtml::element>(self) };
+	if (ref != nullptr)
 		return ref->element.lock();
 
 	return nullptr;
@@ -59,7 +62,8 @@ static std::shared_ptr<litehtml::element> js_get_element(JSContext* ctx, JSValue
 
 static JSValue js_getTagName(JSContext* ctx, JSValueConst self)
 {
-	if (auto element { js_get_element(ctx, self) })
+	std::shared_ptr<litehtml::element> element { js_get_element(ctx, self) };
+	if (element)
 		return JS_NewString(ctx, element->get_tagName());
 
 	return JS_UNDEFINED;
@@ -67,9 +71,11 @@ static JSValue js_getTagName(JSContext* ctx, JSValueConst self)
 
 static JSValue js_getId(JSContext* ctx, JSValueConst self)
 {
-	if (auto element { js_get_element(ctx, self) })
+	std::shared_ptr<litehtml::element> element { js_get_element(ctx, self) };
+	if (element)
 	{
-		if (const auto* id { element->get_attr("id") })
+		const litehtml::tchar_t* id { element->get_attr("id") };
+		if (id != nullptr)
 			return JS_NewString(ctx, id);
 	}
 
@@ -78,9 +84,10 @@ static JSValue js_getId(JSContext* ctx, JSValueConst self)
 
 static JSValue js_setId(JSContext* ctx, JSValueConst self, JSValueConst val)
 {
-	if (auto element { js_get_element(ctx, self) })
+	std::shared_ptr<litehtml::element> element { js_get_element(ctx, self) };
+	if (element)
 	{
-		const auto* str { JS_ToCString(ctx, val) };
+		const char* str { JS_ToCString(ctx, val) };
 		element->set_attr("id", str);
 		JS_FreeCString(ctx, str);
 	}
@@ -93,10 +100,11 @@ static JSValue js_getAttribute(JSContext* ctx, JSValueConst self, int argc, JSVa
 	if (argc != 1)
 		return JS_UNDEFINED;
 
-	if (auto element { js_get_element(ctx, self) })
+	std::shared_ptr<litehtml::element> element { js_get_element(ctx, self) };
+	if (element)
 	{
-		const auto* attrName { JS_ToCString(ctx, args[0]) };
-		const auto* attrVal { element->get_attr(attrName) };
+		const char* attrName { JS_ToCString(ctx, args[0]) };
+		const litehtml::tchar_t* attrVal { element->get_attr(attrName) };
 		JS_FreeCString(ctx, attrName);
 
 		if (attrVal != nullptr)
@@ -111,10 +119,11 @@ static JSValue js_setAttribute(JSContext* ctx, JSValueConst self, int argc, JSVa
 	if (argc != 2)
 		return JS_EXCEPTION;
 
-	if (auto element { js_get_element(ctx, self) })
+	std::shared_ptr<litehtml::element> element { js_get_element(ctx, self) };
+	if (element)
 	{
-		const auto* attrName { JS_ToCString(ctx, args[0]) };
-		const auto* attrVal { JS_ToCString(ctx, args[1]) };
+		const char* attrName { JS_ToCString(ctx, args[0]) };
+		const char* attrVal { JS_ToCString(ctx, args[1]) };
 		element->set_attr(attrName, attrVal);
 		JS_FreeCString(ctx, attrVal);
 		JS_FreeCString(ctx, attrName);
@@ -125,13 +134,14 @@ static JSValue js_setAttribute(JSContext* ctx, JSValueConst self, int argc, JSVa
 
 static JSValue js_getChildren(JSContext* ctx, JSValueConst self)
 {
-	if (auto element { js_get_element(ctx, self) })
+	std::shared_ptr<litehtml::element> element { js_get_element(ctx, self) };
+	if (element)
 	{
-		auto jsArr { JS_NewArray (ctx) };
+		JSValue jsArr { JS_NewArray (ctx) };
 
 		for (size_t i = 0; i < element->get_children_count(); ++i)
 		{
-			auto child { element->get_child(i) };
+			std::shared_ptr<litehtml::element> child { element->get_child(i) };
 
 			if (!child->is_comment())
 				JS_SetPropertyUint32 (ctx, jsArr, i, JS_DupValue(ctx, *child->js_value()));
@@ -148,9 +158,11 @@ static JSValue js_appendChild(JSContext* ctx, JSValueConst self, int argc, JSVal
 	if (argc != 1)
 		return JS_EXCEPTION;
 
-	if (auto element { js_get_element(ctx, self) })
+	std::shared_ptr<litehtml::element> element { js_get_element(ctx, self) };
+	if (element)
 	{
-		if (auto elementToAppend { js_get_element(ctx, args[0]) })
+		std::shared_ptr<litehtml::element> elementToAppend { js_get_element(ctx, args[0]) };
+		if (elementToAppend)
 		{
 			element->appendChild(elementToAppend);
 			elementToAppend->get_document()->remove_from_stash(elementToAppend);
@@ -165,9 +177,11 @@ static JSValue js_removeChild(JSContext* ctx, JSValueConst self, int argc, JSVal
 	if (argc != 1)
 		return JS_EXCEPTION;
 
-	if (auto element { js_get_element(ctx, self) })
+	std::shared_ptr<litehtml::element> element { js_get_element(ctx, self) };
+	if (element)
 	{
-		if (auto elementToBeRemoved { js_get_element(ctx, args[0]) })
+		std::shared_ptr<litehtml::element> elementToBeRemoved { js_get_element(ctx, args[0]) };
+		if (elementToBeRemoved)
 		{
 			if (element->removeChild(elementToBeRemoved))
 				element->get_document()->stash_element(elementToBeRemoved);
@@ -209,7 +223,7 @@ bool litehtml::element::is_point_inside( int x, int y )
 	{
 		std::vector<position> boxes;
 		get_inline_boxes(boxes);
-		for(auto & box : boxes)
+		for(position & box : boxes)
 		{
 			if(box.is_point_inside(x, y))
 			{

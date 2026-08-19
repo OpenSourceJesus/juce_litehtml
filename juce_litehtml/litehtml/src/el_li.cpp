@@ -10,14 +10,15 @@ int litehtml::el_li::render(int x, int y, int max_width, bool second_pass)
 {
 	if (m_list_style_type >= list_style_type_armenian && !m_index_initialized)
 	{
-		if (auto p = parent())
+		std::shared_ptr<litehtml::element> p = parent();
+		if (p)
 		{
-			const auto hasStart = p->get_attr(_t("start"));
+			const tchar_t* hasStart = p->get_attr(_t("start"));
 			const int start = hasStart ? t_atoi(hasStart) : 1;
 			int val = start;
 			for (int i = 0, n = (int)p->get_children_count(); i < n; ++i)
 			{
-				auto child = p->get_child(i);
+				std::shared_ptr<litehtml::element> child = p->get_child(i);
 				if (child.get() == this)
 				{
 					set_attr(_t("list_index"), t_to_string(val).c_str());
