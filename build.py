@@ -758,7 +758,10 @@ def run_crust_build(target: Target, jobs: int, release: bool, verbose: bool,
         + pkg_includes
         + [str(crust_shim_dir())]          # last: never shadows a real header
     )
-    defines = list(target.defines) + pkg_defines
+    # LITEHTML_NO_IOSTREAM: the C++ subset has no `operator<<`, and the one
+    # stream inserter in the tree (tstring_view) is unused here. Defined only
+    # on this path, so the gcc build keeps it.
+    defines = list(target.defines) + pkg_defines + ["LITEHTML_NO_IOSTREAM=1"]
 
     print(f"[{target.name}] crust: {crust}")
     print(f"[{target.name}] cache: {tmp}")
