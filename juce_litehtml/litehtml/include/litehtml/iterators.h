@@ -16,27 +16,33 @@ namespace litehtml
 		~iterator_selector() = default;
 	};
 
+	/* crust: hoisted out of the iterator class. A vector over the nested
+	   name instantiates a template whose element type the lowering cannot
+	   spell, so the element type lives at namespace scope instead.
+	   NB: keep template syntax out of comments here -- comment text is
+	   scanned for instantiations, and naming one in prose made the pass try
+	   to emit it. */
+	struct elements_iterator_stack_item
+	{
+		int				idx;
+		std::shared_ptr<litehtml::element>	el;
+		elements_iterator_stack_item() : idx(0)
+		{
+		}
+		elements_iterator_stack_item(const elements_iterator_stack_item& val)
+		{
+			idx = val.idx;
+			el = val.el;
+		}
+	/* crust: the move constructor is removed -- rvalue references are
+	   not in the C++ subset, and the copy constructor above does the
+	   same work (one extra shared_ptr refcount bump). */
+	};
+
 	class elements_iterator
 	{
 	private:
-		struct stack_item
-		{
-			int				idx;
-			std::shared_ptr<litehtml::element>	el;
-			stack_item() : idx(0)
-			{
-			}
-			stack_item(const stack_item& val)
-			{
-				idx = val.idx;
-				el = val.el;
-			}
-		/* crust: the move constructor is removed -- rvalue references are
-		   not in the C++ subset, and the copy constructor above does the
-		   same work (one extra shared_ptr refcount bump). */
-		};
-
-		std::vector<stack_item>		m_stack;
+		std::vector<elements_iterator_stack_item>		m_stack;
 		std::shared_ptr<litehtml::element>				m_el;
 		int							m_idx;
 		iterator_selector*			m_go_inside;

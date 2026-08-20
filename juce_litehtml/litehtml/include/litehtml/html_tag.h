@@ -13,6 +13,11 @@
 
 namespace litehtml
 {
+	/* crust: JS class finalizer, defined in html_tag.cpp. It frees an
+	   `element_js_object_ref`, since html_tag reuses element's reference
+	   type, but keys on html_tag's own class id. See context.h. */
+	void html_tag_js_finalize(JSRuntime* rt, JSValue val);
+
 	struct line_context
 	{
 		int calculatedTop;
@@ -41,7 +46,10 @@ namespace litehtml
 		typedef std::shared_ptr<litehtml::html_tag>	ptr;
 
 	protected:
-		box::vector				m_boxes;
+		/* crust: written out rather than `box::vector`. A class-scoped
+		   typedef is deliberately left alone by the lowering, so the field's
+		   type never resolved to a container and `m_boxes` was not walkable. */
+		std::vector<std::shared_ptr<litehtml::box> >				m_boxes;
 		string_vector			m_class_values;
 		tstring					m_tag;
 		litehtml::style			m_style;

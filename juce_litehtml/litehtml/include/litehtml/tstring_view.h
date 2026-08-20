@@ -96,7 +96,10 @@ public:
         return data_ + size_;
     }
 
-    constexpr const_reference operator[](size_type offset) const
+    /* crust: the return type is written out rather than spelled through the
+       `const_reference` alias. `operator[]` has to return a reference so that
+       a subscript stays an lvalue, and the alias hid the `&`. */
+    constexpr const tchar_t& operator[](size_type offset) const
     {
         return *(data_ + offset);
     }
@@ -127,9 +130,13 @@ private:
     size_type size_ = 0;
 };
 
+/* crust: see tstring_view.cpp -- `operator<<` is outside the subset and
+   unused in this tree. */
+#ifndef LITEHTML_NO_IOSTREAM
 std::basic_ostream<tstring_view::value_type>& operator<<(
     std::basic_ostream<tstring_view::value_type>&,
     tstring_view str);
+#endif
 
 } // namespace litehtml
 

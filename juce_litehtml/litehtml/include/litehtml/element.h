@@ -14,6 +14,13 @@ namespace litehtml
 {
 	class box;
 
+	/* crust: `element_js_object_ref` is declared in js_object_ref.h, which
+	   context.h includes -- see the note there for why it cannot live here. */
+
+	/* crust: the JS class finalizer, defined in element.cpp where
+	   `element_js_object_ref` is complete. See context.h. */
+	void element_js_finalize(JSRuntime* rt, JSValue val);
+
 	class element : public std::enable_shared_from_this<element>
 	{
 		friend class block_box;
@@ -25,15 +32,6 @@ namespace litehtml
 		typedef std::shared_ptr<litehtml::element>			ptr;
 		typedef std::shared_ptr<const litehtml::element>	const_ptr;
 		typedef std::weak_ptr<litehtml::element>			weak_ptr;
-
-		struct js_object_ref final
-		{
-			element::weak_ptr element {};
-			/* crust: by const reference. A by-value owning parameter is
-			   destroyed by the callee, and the caller still owns it too. */
-			js_object_ref(const std::shared_ptr<litehtml::element>& el);
-			~js_object_ref();
-		};
 
 		/* crust: reference return -> pointer. */
 		JSValue* js_value() { return &m_jsValue; }

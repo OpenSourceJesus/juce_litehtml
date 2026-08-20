@@ -34,6 +34,11 @@ namespace litehtml
 
 	class html_tag;
 
+	/* crust: `document_js_object_ref` is declared in js_object_ref.h. */
+
+	/* crust: JS class finalizer, defined in document.cpp. See context.h. */
+	void document_js_finalize(JSRuntime* rt, JSValue val);
+
 	class document : public std::enable_shared_from_this<document>
 	{
 	public:
@@ -41,15 +46,6 @@ namespace litehtml
 		typedef std::weak_ptr<document>		weak_ptr;
 
 		static JSClassID jsClassID;
-
-		struct js_object_ref
-		{
-			litehtml::document* document { nullptr };
-
-			js_object_ref(litehtml::document* d)
-				: document { d }
-			{}
-		};
 
 		static void register_js_prototype(JSContext* ctx, JSValue prototype);
 
@@ -124,6 +120,8 @@ namespace litehtml
 		bool update_media_lists(const media_features& features);
 		void fix_tables_layout();
 		void fix_table_children(std::shared_ptr<litehtml::element>& el_ptr, style_display disp, const tchar_t* disp_str);
+		/* crust: was a capturing lambda inside fix_table_children. */
+		std::shared_ptr<litehtml::element> make_anonymous_wrapper(std::shared_ptr<litehtml::element>& el_ptr, const tchar_t* disp_str, elements_vector& items);
 		void fix_table_parent(std::shared_ptr<litehtml::element>& el_ptr, style_display disp, const tchar_t* disp_str);
 	};
 

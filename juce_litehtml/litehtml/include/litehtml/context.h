@@ -7,6 +7,7 @@ extern "C" {
 #	include "quickjs.h"
 }
 
+#include "js_object_ref.h"
 #include "stylesheet.h"
 
 namespace litehtml
@@ -17,9 +18,18 @@ namespace litehtml
 		context();
 		virtual ~context();
 
-		/** Register JavaScript class. */
+		/** Register JavaScript class.
+		    crust: the finalizer is passed in rather than written as a lambda
+		    in the template body. It used to `delete` a `typename
+		    T::js_object_ref`, and a class-scoped name is left alone by the
+		    lowering, so the `::` reached the C front end with no destructor
+		    to resolve. Spelling `RefT` as a second template parameter did not
+		    help either -- the `delete` still sat inside a template, where the
+		    operand's type is only known after substitution. A concrete
+		    function per class is defined where the type is complete, so
+		    nothing here has to be deduced at all. */
 		template<class T>
-		void js_register_class(const char* className)
+		void js_register_class(const char* className, JSClassFinalizer* finalizer)
 		{
 			if (T::jsClassID == 0)
 				JS_NewClassID (&T::jsClassID);
@@ -28,17 +38,7 @@ namespace litehtml
 			{
 				const JSClassDef def {
 					className,
-					[](JSRuntime*, JSValue value) {
-						/* crust: `auto*` replaced by the written type. The
-						   deduction pass reads types as they are spelled, and
-						   a declaration inside an `if` condition gave it
-						   nothing to read. */
-						typename T::js_object_ref* ref = static_cast<typename T::js_object_ref*>(JS_GetOpaque (value, T::jsClassID));
-						if (ref != nullptr)
-						{
-							delete ref;
-						}
-					},
+					finalizer,
 					nullptr,
 					nullptr,
 					nullptr
@@ -55,15 +55,16 @@ namespace litehtml
 			JS_SetClassProto(m_jsContext, T::jsClassID, proto);
 		}
 
-		/** Returns inner reference object. */
-		template<class T>
-		static typename T::js_object_ref* js_get_object_ref(JSValue obj)
+		/** Returns inner reference object.
+		    crust: `RefT` spelled at the call site, as above. */
+		template<class T, class RefT>
+		static RefT* js_get_object_ref(JSValue obj)
 		{
 			void* opaque { nullptr };
 			const JSClassID classID { JS_GetClassID(obj, &opaque) };
 			
 			if (classID == T::jsClassID && opaque != nullptr)
-				return static_cast<typename T::js_object_ref*>(opaque);
+				return static_cast<RefT*>(opaque);
 
 			return nullptr;
 		}
