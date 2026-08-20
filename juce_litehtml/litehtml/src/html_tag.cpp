@@ -11,6 +11,23 @@
 
 JSClassID litehtml::html_tag::jsClassID = 0;
 
+/* crust: the JS class finalizer, lifted out of a lambda in
+   context.h's js_register_class template -- see the note there. Defined here,
+   where element_js_object_ref is a complete type, so `delete` needs
+   nothing deduced. */
+void litehtml::html_tag_js_finalize(JSRuntime*, JSValue val)
+{
+	/* crust: the pointer is declared on its own line and assigned after.
+	   Declared straight from a cast the pass did not record a type for it,
+	   so the delete had no destructor to resolve. */
+	litehtml::element_js_object_ref* ref;
+	ref = (litehtml::element_js_object_ref*)JS_GetOpaque (val, litehtml::html_tag::jsClassID);
+	if (ref != nullptr)
+	{
+		delete ref;
+	}
+}
+
 litehtml::html_tag::html_tag(const std::shared_ptr<litehtml::document>& doc) : litehtml::element(doc)
 {
 	m_box_sizing			= box_sizing_content_box;
@@ -167,8 +184,14 @@ void litehtml::html_tag::apply_stylesheet( const litehtml::css& stylesheet )
 {
 	remove_before_after();
 
-	for(const auto& sel : *stylesheet.selectors())
+	/* crust: a range-`for` needs a named array or container, and
+	   `*stylesheet.selectors()` is an expression. Bind the pointer to a local
+	   first and walk it by index. */
+	const std::vector<std::shared_ptr<css_selector> >* sel_list = stylesheet.selectors();
+
+	for(int sel_i = 0; sel_i < (int)sel_list->size(); sel_i++)
 	{
+		const std::shared_ptr<css_selector>& sel = (*sel_list)[sel_i];
 		int apply = select(*sel, false);
 
 		if(apply != select_no_match)
@@ -702,8 +725,11 @@ int litehtml::html_tag::select(const css_element_selector& selector, bool apply_
 	int res = select_match;
 	std::shared_ptr<litehtml::element> el_parent = parent();
 
-	for(const auto& attr : selector.m_attrs)
+	/* crust: indexed loop -- `selector` is a reference parameter, so
+	   `selector.m_attrs` is not a range the pass will walk. */
+	for(int ai = 0; ai < (int)selector.m_attrs.size(); ai++)
 	{
+		const css_attribute_selector& attr = selector.m_attrs[ai];
 		const tchar_t* attr_value = get_attr(attr.attribute.c_str());
 		switch(attr.condition)
 		{
@@ -1259,9 +1285,10 @@ int litehtml::html_tag::fix_line_width( int max_width, element_float flt )
 				if(m_css_text_indent.val() != 0)
 				{
 					bool line_box_found = false;
-					for(const auto& box : m_boxes)
+					/* crust: indexed loop; see html_tag.h on `m_boxes`. */
+					for(int bi = 0; bi < (int)m_boxes.size(); bi++)
 					{
-						if(box->get_type() == box_line)
+						if(m_boxes[bi]->get_type() == box_line)
 						{
 							line_box_found = true;
 							break;
@@ -2069,7 +2096,8 @@ void litehtml::html_tag::draw_background( uint_ptr hdc, int x, int y, const posi
 			border_box += m_padding;
 			border_box += m_borders;
 
-			borders bdr = m_css_borders;
+			/* crust: converting constructor -> assignment; see el_image.cpp. */
+			borders bdr(m_css_borders);
             if(bdr.is_visible())
             {
                 bdr.radius = m_css_borders.radius.calc_percents(border_box.width, border_box.height);
@@ -2579,9 +2607,10 @@ int litehtml::html_tag::new_box(const std::shared_ptr<litehtml::element> &el, in
 		if(m_css_text_indent.val() != 0)
 		{
 			bool line_box_found = false;
-			for(auto & box : m_boxes)
+			/* crust: indexed loop; see html_tag.h on `m_boxes`. */
+			for(int bi = 0; bi < (int)m_boxes.size(); bi++)
 			{
-				if(box->get_type() == box_line)
+				if(m_boxes[bi]->get_type() == box_line)
 				{
 					line_box_found = true;
 					break;
@@ -2822,9 +2851,10 @@ void litehtml::html_tag::apply_vertical_align()
 
 		if(add)
 		{
-			for(auto & box : m_boxes)
+			/* crust: indexed loop; see html_tag.h on `m_boxes`. */
+			for(int bi = 0; bi < (int)m_boxes.size(); bi++)
 			{
-				box->y_shift(add);
+				m_boxes[bi]->y_shift(add);
 			}
 		}
 	}

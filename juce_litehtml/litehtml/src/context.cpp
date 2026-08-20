@@ -86,7 +86,8 @@ void litehtml::context::js_register_property(JSContext* ctx, JSValue prototype, 
 
 void litehtml::context::js_register_default_classes()
 {	
-	js_register_class<litehtml::document>("Document");
-	js_register_class<litehtml::element>("Element");
-	js_register_class<litehtml::html_tag>("HTMLElement");
+	js_register_class<litehtml::document>("Document", litehtml::document_js_finalize);
+	js_register_class<litehtml::element>("Element", litehtml::element_js_finalize);
+	/* crust: html_tag inherits element's reference type. */
+	js_register_class<litehtml::html_tag>("HTMLElement", litehtml::html_tag_js_finalize);
 }

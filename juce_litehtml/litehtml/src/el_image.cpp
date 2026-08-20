@@ -249,7 +249,13 @@ void litehtml::el_image::draw( uint_ptr hdc, int x, int y, const position* clip 
 		border_box += m_padding;
 		border_box += m_borders;
 
-		borders bdr = m_css_borders;
+		/* crust: `borders b = css_borders` is a *converting* constructor, not a
+		   copy, and the pass read it as a copy of a type the right-hand side
+		   does not have. Default-construct then assign through
+		   `operator=(const css_borders&)`, which is the same conversion
+		   borders.h already performs, and the same result: the converting
+		   constructor does not set `radius` either. */
+		borders bdr(m_css_borders);
 		bdr.radius = m_css_borders.radius.calc_percents(border_box.width, border_box.height);
 
 		get_document()->container()->draw_borders(hdc, bdr, border_box, !have_parent());

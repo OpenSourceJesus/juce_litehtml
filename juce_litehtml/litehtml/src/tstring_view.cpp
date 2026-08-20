@@ -32,6 +32,11 @@
 namespace litehtml {
 
 
+/* crust: the stream inserter is not in the C++ subset -- it supports
+   `operator=`, compound assignment, `[]`, `->`, `*` and the comparisons, but
+   not `<<`. Nothing in the tree calls it (it is a convenience for host code),
+   so it is compiled out under crust rather than rewritten. */
+#ifndef LITEHTML_NO_IOSTREAM
 std::basic_ostream<tstring_view::value_type>& operator<<(
     std::basic_ostream<tstring_view::value_type>& os,
     tstring_view str)
@@ -42,5 +47,6 @@ std::basic_ostream<tstring_view::value_type>& operator<<(
 
     return os;
 }
+#endif
 
 } // namespace litehtml

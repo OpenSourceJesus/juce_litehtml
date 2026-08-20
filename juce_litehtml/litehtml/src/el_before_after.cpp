@@ -5,7 +5,21 @@
 #include "el_image.h"
 #include "utf8_strings.h"
 
-litehtml::el_before_after_base::el_before_after_base(const std::shared_ptr<litehtml::document>& doc, bool before) : html_tag(doc)
+litehtml::el_before_after_base::el_before_after_base(const std::shared_ptr<litehtml::document>& doc) : html_tag(doc)
+{
+}
+
+litehtml::el_before::el_before(const std::shared_ptr<litehtml::document>& doc) : el_before_after_base(doc)
+{
+	init_pseudo(true);
+}
+
+litehtml::el_after::el_after(const std::shared_ptr<litehtml::document>& doc) : el_before_after_base(doc)
+{
+	init_pseudo(false);
+}
+
+void litehtml::el_before_after_base::init_pseudo(bool before)
 {
 	if(before)
 	{
@@ -20,7 +34,15 @@ void litehtml::el_before_after_base::add_style(const tstring& style, const tstri
 {
 	html_tag::add_style(style, baseurl);
 
-	auto children = m_children;
+	/* crust: `auto children = m_children` copy-constructs an owning vector
+	   from a field two bases up (`this->_base._base.m_children`), which the
+	   pass will not copy from an expression it cannot name. Copied element by
+	   element instead, which is the same snapshot. */
+	elements_vector children;
+	for(int ci = 0; ci < (int)m_children.size(); ci++)
+	{
+		children.push_back(m_children[ci]);
+	}
 	m_children.clear();
 
 	tstring content = get_style_property(_t("content"), false, _t(""));
@@ -78,7 +100,12 @@ void litehtml::el_before_after_base::add_style(const tstring& style, const tstri
 
 	if(m_children.empty())
 	{
-		m_children = children;
+		/* crust: element-by-element, as above. */
+		m_children.clear();
+		for(int ci = 0; ci < (int)children.size(); ci++)
+		{
+			m_children.push_back(children[ci]);
+		}
 	}
 }
 

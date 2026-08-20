@@ -11,7 +11,7 @@ std::shared_ptr<litehtml::element> litehtml::elements_iterator::next(bool ret_pa
 		std::shared_ptr<litehtml::element> el = m_el->get_child(m_idx);
 		if(	el->get_children_count() && m_go_inside && m_go_inside->select(el) )
 		{
-			stack_item si;
+			litehtml::elements_iterator_stack_item si;
 			si.idx		= m_idx;
 			si.el		= m_el;
 			m_stack.push_back(si);
@@ -42,7 +42,7 @@ void litehtml::elements_iterator::next_idx()
 	m_idx++;
 	while(m_idx >= (int) m_el->get_children_count() && !m_stack.empty())
 	{
-		stack_item si = m_stack.back();
+		litehtml::elements_iterator_stack_item si = m_stack.back();
 		m_stack.pop_back();
 		m_idx	= si.idx;
 		m_el	= si.el;

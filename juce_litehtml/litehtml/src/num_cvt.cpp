@@ -6,33 +6,57 @@ static std::vector<litehtml::tchar_t> latin_lower = { _t('a'), _t('b'), _t('c'),
 static std::vector<litehtml::tchar_t> latin_upper = { _t('A'), _t('B'), _t('C'), _t('D'), _t('E'), _t('F'), _t('G'), _t('H'), _t('I'), _t('J'), _t('K'), _t('L'), _t('M'), _t('N'), _t('O'), _t('P'), _t('Q'), _t('R'), _t('S'), _t('T'), _t('U'), _t('V'), _t('W'), _t('X'), _t('Y'), _t('Z') };
 static std::vector<std::wstring> greek_lower = { L"α", L"β", L"γ", L"δ", L"ε", L"ζ", L"η", L"θ", L"ι", L"κ", L"λ", L"μ", L"ν", L"ξ", L"ο", L"π", L"ρ", L"σ", L"τ", L"υ", L"φ", L"χ", L"ψ", L"ω" };
 
+/* crust: `out = map[modulo] + out` prepends with `operator+`, which the
+   subset's string does not have -- it has `push_back` and `append`. The digits
+   come out least-significant first, so they are collected and then emitted in
+   reverse, which is the same string by a different route. */
 static litehtml::tstring to_mapped_alpha(int num, const std::vector<litehtml::tchar_t>& map)
 {
 	int dividend = num;
-	litehtml::tstring out;
+	litehtml::tstring rev;
 	int modulo;
 
 	while (dividend > 0)
 	{
-		modulo = (dividend - 1) % map.size();
-		out = map[modulo] + out;
-		dividend = (int)((dividend - modulo) / map.size());
+		modulo = (dividend - 1) % (int)map.size();
+		rev.push_back(map[modulo]);
+		dividend = (int)((dividend - modulo) / (int)map.size());
+	}
+
+	litehtml::tstring out;
+	for (int i = (int)rev.size() - 1; i >= 0; i--)
+	{
+		out.push_back(rev[i]);
 	}
 
 	return out;
 }
 
+/* crust: as above. Each piece here is a whole string rather than one
+   character, so the indices are collected (a vector of scalars) and the
+   pieces appended in reverse -- a vector of strings would be an owning
+   element type and wants `ownvector`. */
 static litehtml::tstring to_mapped_alpha(int num, const std::vector<std::wstring>& map)
 {
 	int dividend = num;
-	litehtml::tstring out;
 	int modulo;
+	std::vector<int> order;
 
 	while (dividend > 0)
 	{
-		modulo = (dividend - 1) % map.size();
-		out = litehtml_from_wchar(map[modulo]).c_str() + out;
-		dividend = (int)((dividend - modulo) / map.size());
+		modulo = (dividend - 1) % (int)map.size();
+		order.push_back(modulo);
+		dividend = (int)((dividend - modulo) / (int)map.size());
+	}
+
+	litehtml::tstring out;
+	for (int i = (int)order.size() - 1; i >= 0; i--)
+	{
+		/* A named local rather than a chained call on a temporary:
+		   `litehtml_from_wchar` builds a `wchar_to_utf8` by value, and a
+		   method call on a by-value result has no address to take. */
+		litehtml::wchar_to_utf8 piece(map[order[i]]);
+		out.append(piece.c_str());
 	}
 
 	return out;

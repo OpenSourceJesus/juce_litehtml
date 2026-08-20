@@ -18,9 +18,12 @@ void litehtml::trim(tstring &s)
 
 void litehtml::lcase(tstring &s) 
 {
-	for(tchar_t & i : s)
+	/* crust: indexed loop rather than a range-`for`. The range has to be a
+	   named array with a written size or a container with `size()` and
+	   `operator[]`; `s` is a reference parameter, which is neither. */
+	for(tstring::size_type i = 0; i < s.length(); i++)
 	{
-		i = t_tolower(i);
+		s[i] = t_tolower(s[i]);
 	}
 }
 
@@ -98,7 +101,11 @@ void litehtml::split_string(const tstring& str, string_vector& tokens, const tst
 		return;
 	}
 
-	tstring all_delims = delims + delims_preserve + quote;
+	/* crust: string `operator+` is not in the subset; append instead. */
+	tstring all_delims;
+	all_delims.append(delims.c_str());
+	all_delims.append(delims_preserve.c_str());
+	all_delims.append(quote.c_str());
 
 	tstring::size_type token_start	= 0;
 	tstring::size_type token_end	= str.find_first_of(all_delims, token_start);

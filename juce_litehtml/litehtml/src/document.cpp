@@ -31,13 +31,30 @@
 
 JSClassID litehtml::document::jsClassID = 0;
 
+/* crust: the JS class finalizer, lifted out of a lambda in
+   context.h's js_register_class template -- see the note there. Defined here,
+   where document_js_object_ref is a complete type, so `delete` needs
+   nothing deduced. */
+void litehtml::document_js_finalize(JSRuntime*, JSValue val)
+{
+	/* crust: the pointer is declared on its own line and assigned after.
+	   Declared straight from a cast the pass did not record a type for it,
+	   so the delete had no destructor to resolve. */
+	litehtml::document_js_object_ref* ref;
+	ref = (litehtml::document_js_object_ref*)JS_GetOpaque (val, litehtml::document::jsClassID);
+	if (ref != nullptr)
+	{
+		delete ref;
+	}
+}
+
 litehtml::document::document(litehtml::document_container* objContainer, litehtml::context* ctx)
 {
 	m_container	= objContainer;
 	m_context	= ctx;
 
 	m_jsValue   = JS_NewObjectClass(ctx->js_context(), jsClassID);
-	JS_SetOpaque (m_jsValue, new js_object_ref(this));
+	JS_SetOpaque (m_jsValue, new litehtml::document_js_object_ref(this));
 }
 
 litehtml::document::~document()
@@ -61,7 +78,9 @@ litehtml::document::~document()
 
 static std::shared_ptr<litehtml::document> js_get_document(JSContext* ctx, JSValueConst self)
 {
-	if (auto* ref { litehtml::context::js_get_object_ref<litehtml::document>(self) })
+	/* crust: `auto*` replaced by the written type. */
+	litehtml::document_js_object_ref* ref { litehtml::context::js_get_object_ref<litehtml::document, litehtml::document_js_object_ref>(self) };
+	if (ref != nullptr)
 		return ref->document->shared_from_this();
 
 	return nullptr;
@@ -794,9 +813,9 @@ void litehtml::document::create_node(void* gnode, elements_vector& elements, boo
 				{
 					child.clear();
 					create_node(static_cast<GumboNode*> (node->v.element.children.data[i]), child, parseTextNode);
-					/* crust: indexed loop rather than for_each with a
-					   lambda. The subset inlines a lambda at its call
-					   sites, so it needs one bound to a name. */
+					/* crust: indexed loop rather than for_each with an
+					   inline closure -- the subset inlines those at their
+					   call sites, so each needs a name to be found by. */
 					for (int ci = 0; ci < (int)child.size(); ci++)
 					{
 						ret->appendChild(child[ci]);
@@ -894,62 +913,68 @@ void litehtml::document::fix_tables_layout()
 	}
 }
 
+/* crust: this was an inline closure inside fix_table_children, which the
+   subset cannot express: the binding had no written type, and the body walked
+   the child list with iterators, which the supplied container does not have.
+   Rewritten to build a fresh child list by index -- the same move already
+   made in fix_table_parent below, and the same result. */
+std::shared_ptr<litehtml::element> litehtml::document::make_anonymous_wrapper(std::shared_ptr<litehtml::element>& el_ptr, const tchar_t* disp_str, elements_vector& items)
+{
+	std::shared_ptr<litehtml::element> annon_tag = std::make_shared<html_tag>(shared_from_this());
+	annon_tag->add_style(tstring(_t("display:")) + disp_str, _t(""));
+	annon_tag->parent(el_ptr);
+	annon_tag->parse_styles();
+	for (int ti = 0; ti < (int)items.size(); ti++)
+	{
+		annon_tag->appendChild(items[ti]);
+	}
+	return annon_tag;
+}
+
 void litehtml::document::fix_table_children(std::shared_ptr<litehtml::element>& el_ptr, style_display disp, const tchar_t* disp_str)
 {
 	elements_vector tmp;
-	auto first_iter = el_ptr->m_children.begin();
-	auto cur_iter = el_ptr->m_children.begin();
+	elements_vector out;
 
-	auto flush_elements = [&]()
+	for (int i = 0; i < (int)el_ptr->m_children.size(); i++)
 	{
-		std::shared_ptr<litehtml::element> annon_tag = std::make_shared<html_tag>(shared_from_this());
-		annon_tag->add_style(tstring(_t("display:")) + disp_str, _t(""));
-		annon_tag->parent(el_ptr);
-		annon_tag->parse_styles();
-		/* crust: indexed loop rather than for_each with a lambda. */
-		for (int ti = 0; ti < (int)tmp.size(); ti++)
-		{
-			annon_tag->appendChild(tmp[ti]);
-		}
-		first_iter = el_ptr->m_children.insert(first_iter, annon_tag);
-		cur_iter = first_iter + 1;
-		while (cur_iter != el_ptr->m_children.end() && (*cur_iter)->parent() != el_ptr)
-		{
-			cur_iter = el_ptr->m_children.erase(cur_iter);
-		}
-		first_iter = cur_iter;
-		tmp.clear();
-	};
+		std::shared_ptr<litehtml::element> child = el_ptr->m_children[i];
 
-	while (cur_iter != el_ptr->m_children.end())
-	{
-		if ((*cur_iter)->get_display() != disp)
+		if (child->get_display() != disp)
 		{
-			if (!(*cur_iter)->is_table_skip() || ((*cur_iter)->is_table_skip() && !tmp.empty()))
+			/* A run of children that do not have the wanted display is
+			   gathered up and later reparented under one anonymous tag. */
+			if (!child->is_table_skip() || !tmp.empty())
 			{
-				if (disp != display_table_row_group || (*cur_iter)->get_display() != display_table_caption)
+				if (disp != display_table_row_group || child->get_display() != display_table_caption)
 				{
-					if (tmp.empty())
-					{
-						first_iter = cur_iter;
-					}
-					tmp.push_back((*cur_iter));
+					tmp.push_back(child);
+					continue;
 				}
 			}
-			cur_iter++;
-		}
-		else if (!tmp.empty())
-		{
-			flush_elements();
+			out.push_back(child);
 		}
 		else
 		{
-			cur_iter++;
+			if (!tmp.empty())
+			{
+				out.push_back(make_anonymous_wrapper(el_ptr, disp_str, tmp));
+				tmp.clear();
+			}
+			out.push_back(child);
 		}
 	}
+
 	if (!tmp.empty())
 	{
-		flush_elements();
+		out.push_back(make_anonymous_wrapper(el_ptr, disp_str, tmp));
+		tmp.clear();
+	}
+
+	el_ptr->m_children.clear();
+	for (int i = 0; i < (int)out.size(); i++)
+	{
+		el_ptr->m_children.push_back(out[i]);
 	}
 }
 

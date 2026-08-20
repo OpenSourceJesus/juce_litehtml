@@ -7,11 +7,28 @@
 
 JSClassID litehtml::element::jsClassID = 0;
 
-litehtml::element::js_object_ref::js_object_ref(const std::shared_ptr<litehtml::element>& el)
+/* crust: the JS class finalizer, lifted out of a lambda in
+   context.h's js_register_class template -- see the note there. Defined here,
+   where element_js_object_ref is a complete type, so `delete` needs
+   nothing deduced. */
+void litehtml::element_js_finalize(JSRuntime*, JSValue val)
+{
+	/* crust: the pointer is declared on its own line and assigned after.
+	   Declared straight from a cast the pass did not record a type for it,
+	   so the delete had no destructor to resolve. */
+	litehtml::element_js_object_ref* ref;
+	ref = (litehtml::element_js_object_ref*)JS_GetOpaque (val, litehtml::element::jsClassID);
+	if (ref != nullptr)
+	{
+		delete ref;
+	}
+}
+
+litehtml::element_js_object_ref::element_js_object_ref(const std::shared_ptr<litehtml::element>& el)
 	: element { el }
 {}
 
-litehtml::element::js_object_ref::~js_object_ref()
+litehtml::element_js_object_ref::~element_js_object_ref()
 {
 	std::shared_ptr<litehtml::element> el { element.lock() };
 	if (el)
@@ -44,7 +61,7 @@ void litehtml::element::init_js_value()
 	{
 		m_jsContext = doc->context()->js_context();
 		m_jsValue   = JS_NewObjectClass(m_jsContext, jsClassID);
-		JS_SetOpaque (m_jsValue, new js_object_ref(shared_from_this()));
+		JS_SetOpaque (m_jsValue, new litehtml::element_js_object_ref(shared_from_this()));
 	}
 }
 
@@ -53,7 +70,7 @@ void litehtml::element::init_js_value()
 
 static std::shared_ptr<litehtml::element> js_get_element(JSContext* ctx, JSValueConst self)
 {
-	litehtml::element::js_object_ref* ref { litehtml::context::js_get_object_ref<litehtml::element>(self) };
+	litehtml::element_js_object_ref* ref { litehtml::context::js_get_object_ref<litehtml::element, litehtml::element_js_object_ref>(self) };
 	if (ref != nullptr)
 		return ref->element.lock();
 
