@@ -24,9 +24,7 @@ void litehtml::element_js_finalize(JSRuntime*, JSValue val)
 	}
 }
 
-litehtml::element_js_object_ref::element_js_object_ref(const std::shared_ptr<litehtml::element>& el)
-	: element { el }
-{}
+/* crust: the constructor is defined inline in js_object_ref.h. */
 
 litehtml::element_js_object_ref::~element_js_object_ref()
 {
