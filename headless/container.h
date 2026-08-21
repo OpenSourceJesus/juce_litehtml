@@ -178,7 +178,7 @@ public:
     virtual void get_image_size (const litehtml::tchar_t* src,
                                  const litehtml::tchar_t* baseurl,
                                  litehtml::size& sz);
-    virtual void draw_background (litehtml::uint_ptr hdc, const litehtml::background_paint& bg);
+    virtual void draw_background (litehtml::uint_ptr hdc, const litehtml::background_paint* bg);
     virtual void draw_borders (litehtml::uint_ptr hdc,
                                const litehtml::borders& borders,
                                const litehtml::position& draw_pos,

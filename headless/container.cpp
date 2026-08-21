@@ -480,11 +480,11 @@ void Container::draw_text (litehtml::uint_ptr hdc,
             text, color, (Font*) hFont);
 }
 
-void Container::draw_background (litehtml::uint_ptr hdc, const litehtml::background_paint& bg)
+void Container::draw_background (litehtml::uint_ptr hdc, const litehtml::background_paint* bg)
 {
-    record (DrawTypeBackground, bg.border_box.x, bg.border_box.y,
-            bg.border_box.width, bg.border_box.height,
-            bg.image.c_str(), bg.color, 0);
+    record (DrawTypeBackground, bg->border_box.x, bg->border_box.y,
+            bg->border_box.width, bg->border_box.height,
+            bg->image.c_str(), bg->color, 0);
 }
 
 void Container::draw_borders (litehtml::uint_ptr hdc,
