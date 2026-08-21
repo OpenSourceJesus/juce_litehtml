@@ -706,9 +706,12 @@ int litehtml::html_tag::select_element(const css_element_selector& selector, boo
 	   `selector.m_attrs` is not a range the pass will walk. */
 	for(int ai = 0; ai < (int)selector.m_attrs.size(); ai++)
 	{
-		const css_attribute_selector& attr = selector.m_attrs[ai];
-		const tchar_t* attr_value = get_attr(attr.attribute.c_str());
-		switch(attr.condition)
+		/* crust: a pointer local rather than a reference one. A reference
+		   local is not lowered to a pointer, so nothing could name it;
+		   a pointer local is registered and reaches through. */
+		const css_attribute_selector* attr = &selector.m_attrs[ai];
+		const tchar_t* attr_value = get_attr(attr->attribute.c_str());
+		switch(attr->condition)
 		{
 		case select_exists:
 			if(!attr_value)
@@ -722,10 +725,10 @@ int litehtml::html_tag::select_element(const css_element_selector& selector, boo
 				return select_no_match;
 			} else
 			{
-				if(attr.attribute == _t("class"))
+				if(attr->attribute == _t("class"))
 				{
 					const string_vector & tokens1 = m_class_values;
-					const string_vector & tokens2 = attr.class_val;
+					const string_vector & tokens2 = attr->class_val;
 					bool found = true;
 					for(const auto& str1 : tokens2)
 					{
@@ -748,7 +751,7 @@ int litehtml::html_tag::select_element(const css_element_selector& selector, boo
 					}
 				} else
 				{
-					if( t_strcasecmp(attr.val.c_str(), attr_value) )
+					if( t_strcasecmp(attr->val.c_str(), attr_value) )
 					{
 						return select_no_match;
 					}
@@ -756,13 +759,13 @@ int litehtml::html_tag::select_element(const css_element_selector& selector, boo
 			}
 			break;
 		case select_contain_str:
-			if(!attr_value || !t_strstr(attr_value, attr.val.c_str()))
+			if(!attr_value || !t_strstr(attr_value, attr->val.c_str()))
 			{
 				return select_no_match;
 			}
 			break;
 		case select_start_str:
-			if(!attr_value || t_strncmp(attr_value, attr.val.c_str(), attr.val.length()))
+			if(!attr_value || t_strncmp(attr_value, attr->val.c_str(), attr->val.length()))
 			{
 				return select_no_match;
 			}
@@ -771,24 +774,24 @@ int litehtml::html_tag::select_element(const css_element_selector& selector, boo
 			if(!attr_value)
 			{
 				return select_no_match;
-			} else if(t_strncmp(attr_value, attr.val.c_str(), attr.val.length()))
+			} else if(t_strncmp(attr_value, attr->val.c_str(), attr->val.length()))
 			{
-				const tchar_t* s = attr_value + t_strlen(attr_value) - attr.val.length() - 1;
+				const tchar_t* s = attr_value + t_strlen(attr_value) - attr->val.length() - 1;
 				if(s < attr_value)
 				{
 					return select_no_match;
 				}
-				if(attr.val != s)
+				if(attr->val != s)
 				{
 					return select_no_match;
 				}
 			}
 			break;
 		case select_pseudo_element:
-			if(attr.val == _t("after"))
+			if(attr->val == _t("after"))
 			{
 				res |= select_match_with_after;
-			} else if(attr.val == _t("before"))
+			} else if(attr->val == _t("before"))
 			{
 				res |= select_match_with_before;
 			} else
@@ -802,19 +805,19 @@ int litehtml::html_tag::select_element(const css_element_selector& selector, boo
 				tstring selector_param;
 				tstring	selector_name;
 
-				tstring::size_type begin	= attr.val.find_first_of(_t('('));
-				tstring::size_type end		= (begin == tstring::npos) ? tstring::npos : find_close_bracket(attr.val, begin);
+				tstring::size_type begin	= attr->val.find_first_of(_t('('));
+				tstring::size_type end		= (begin == tstring::npos) ? tstring::npos : find_close_bracket(attr->val, begin);
 				if(begin != tstring::npos && end != tstring::npos)
 				{
-					selector_param = attr.val.substr(begin + 1, end - begin - 1);
+					selector_param = attr->val.substr(begin + 1, end - begin - 1);
 				}
 				if(begin != tstring::npos)
 				{
-					selector_name = attr.val.substr(0, begin);
+					selector_name = attr->val.substr(0, begin);
 					litehtml::trim(selector_name);
 				} else
 				{
-					selector_name = attr.val;
+					selector_name = attr->val;
 				}
 
 				int pseudo_selector = value_index(selector_name, pseudo_class_strings);
@@ -920,7 +923,7 @@ int litehtml::html_tag::select_element(const css_element_selector& selector, boo
 					}
 					break;
 				default:
-					if(std::find(m_pseudo_classes.begin(), m_pseudo_classes.end(), attr.val) == m_pseudo_classes.end())
+					if(std::find(m_pseudo_classes.begin(), m_pseudo_classes.end(), attr->val) == m_pseudo_classes.end())
 					{
 						return select_no_match;
 					}
