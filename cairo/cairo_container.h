@@ -62,7 +62,7 @@ public:
                             litehtml::uint_ptr hFont,
                             litehtml::web_color color,
                             const litehtml::position& pos);
-    virtual void draw_background (litehtml::uint_ptr hdc, const litehtml::background_paint& bg);
+    virtual void draw_background (litehtml::uint_ptr hdc, const litehtml::background_paint* bg);
     virtual void draw_borders (litehtml::uint_ptr hdc,
                                const litehtml::borders& borders,
                                const litehtml::position& draw_pos,

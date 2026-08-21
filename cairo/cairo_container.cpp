@@ -198,17 +198,17 @@ void CairoContainer::draw_text (litehtml::uint_ptr hdc,
     cairo_show_text (target, text);
 }
 
-void CairoContainer::draw_background (litehtml::uint_ptr hdc, const litehtml::background_paint& bg)
+void CairoContainer::draw_background (litehtml::uint_ptr hdc, const litehtml::background_paint* bg)
 {
     Container::draw_background (hdc, bg);
 
-    if (target == 0 || bg.color.alpha == 0)
+    if (target == 0 || bg->color.alpha == 0)
         return;
 
-    setSourceColor (target, bg.color);
+    setSourceColor (target, bg->color);
     cairo_rectangle (target,
-                     (double) bg.border_box.x, (double) bg.border_box.y,
-                     (double) bg.border_box.width, (double) bg.border_box.height);
+                     (double) bg->border_box.x, (double) bg->border_box.y,
+                     (double) bg->border_box.width, (double) bg->border_box.height);
     cairo_fill (target);
 }
 
