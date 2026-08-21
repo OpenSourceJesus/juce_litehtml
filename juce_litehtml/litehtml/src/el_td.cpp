@@ -2,10 +2,7 @@
 #include "el_td.h"
 
 
-litehtml::el_td::el_td(const std::shared_ptr<litehtml::document>& doc) : html_tag(doc)
-{
-
-}
+/* crust: the constructor is defined inline in el_td.h. */
 
 void litehtml::el_td::parse_attributes()
 {

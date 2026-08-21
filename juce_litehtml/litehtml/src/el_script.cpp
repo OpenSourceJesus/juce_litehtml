@@ -3,10 +3,7 @@
 #include "document.h"
 
 
-litehtml::el_script::el_script(const std::shared_ptr<litehtml::document>& doc) : litehtml::element(doc)
-{
-
-}
+/* crust: the constructor is defined inline in el_script.h. */
 
 void litehtml::el_script::parse_attributes()
 {

@@ -2,9 +2,7 @@
 #include "el_body.h"
 #include "document.h"
 
-litehtml::el_body::el_body(const std::shared_ptr<litehtml::document>& doc) : litehtml::html_tag(doc)
-{
-}
+/* crust: the constructor is defined inline in el_body.h. */
 
 bool litehtml::el_body::is_body()  const
 {

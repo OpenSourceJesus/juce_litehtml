@@ -1,10 +1,7 @@
 #include "html.h"
 #include "el_break.h"
 
-litehtml::el_break::el_break(const std::shared_ptr<litehtml::document>& doc) : html_tag(doc)
-{
-
-}
+/* crust: the constructor is defined inline in el_break.h. */
 
 bool litehtml::el_break::is_break() const
 {

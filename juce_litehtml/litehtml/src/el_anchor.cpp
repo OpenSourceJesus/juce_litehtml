@@ -2,9 +2,7 @@
 #include "el_anchor.h"
 #include "document.h"
 
-litehtml::el_anchor::el_anchor(const std::shared_ptr<litehtml::document>& doc) : html_tag(doc)
-{
-}
+/* crust: the constructor is defined inline in el_anchor.h. */
 
 void litehtml::el_anchor::on_click()
 {

@@ -2,9 +2,7 @@
 #include "el_li.h"
 #include "document.h"
 
-litehtml::el_li::el_li(const std::shared_ptr<litehtml::document>& doc) : litehtml::html_tag(doc)
-{
-}
+/* crust: the constructor is defined inline in el_li.h. */
 
 int litehtml::el_li::render(int x, int y, int max_width, bool second_pass)
 {

@@ -102,7 +102,7 @@ const litehtml::tchar_t* litehtml::html_tag::get_attr( const tchar_t* name, cons
 	return def;
 }
 
-litehtml::elements_vector litehtml::html_tag::select_all( const tstring& selector )
+litehtml::elements_vector litehtml::html_tag::select_all_str( const tstring& selector )
 {
 	css_selector sel(std::shared_ptr<media_query_list>(nullptr), _t(""));
 	sel.parse(selector);
@@ -131,7 +131,7 @@ void litehtml::html_tag::select_all(const css_selector& selector, elements_vecto
 }
 
 
-std::shared_ptr<litehtml::element> litehtml::html_tag::select_one( const tstring& selector )
+std::shared_ptr<litehtml::element> litehtml::html_tag::select_one_str( const tstring& selector )
 {
 	css_selector sel(std::shared_ptr<media_query_list>(nullptr), _t(""));
 	sel.parse(selector);
@@ -605,7 +605,7 @@ void litehtml::html_tag::init()
 
 int litehtml::html_tag::select(const css_selector& selector, bool apply_pseudo)
 {
-	int right_res = select(selector.m_right, apply_pseudo);
+	int right_res = select_element(selector.m_right, apply_pseudo);
 	if(right_res == select_no_match)
 	{
 		return select_no_match;
@@ -689,7 +689,7 @@ int litehtml::html_tag::select(const css_selector& selector, bool apply_pseudo)
 	return right_res;
 }
 
-int litehtml::html_tag::select(const css_element_selector& selector, bool apply_pseudo)
+int litehtml::html_tag::select_element(const css_element_selector& selector, bool apply_pseudo)
 {
 	if(!selector.m_tag.empty() && selector.m_tag != _t("*"))
 	{
@@ -903,7 +903,7 @@ int litehtml::html_tag::select(const css_element_selector& selector, bool apply_
 					{
 						css_element_selector sel;
 						sel.parse(selector_param);
-						if(select(sel, apply_pseudo))
+						if(select_element(sel, apply_pseudo))
 						{
 							return select_no_match;
 						}

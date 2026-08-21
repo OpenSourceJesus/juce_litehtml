@@ -522,9 +522,9 @@ void litehtml::element::get_line_left_right( int y, int def_right, int& ln_left,
 void litehtml::element::add_style( const tstring& style, const tstring& baseurl )						LITEHTML_EMPTY_FUNC
 void litehtml::element::select_all(const css_selector& selector, litehtml::elements_vector& res)	LITEHTML_EMPTY_FUNC
 litehtml::elements_vector litehtml::element::select_all(const litehtml::css_selector& selector)	 LITEHTML_RETURN_FUNC(litehtml::elements_vector())
-litehtml::elements_vector litehtml::element::select_all(const litehtml::tstring& selector)			 LITEHTML_RETURN_FUNC(litehtml::elements_vector())
+litehtml::elements_vector litehtml::element::select_all_str(const litehtml::tstring& selector)			 LITEHTML_RETURN_FUNC(litehtml::elements_vector())
 std::shared_ptr<litehtml::element> litehtml::element::select_one( const css_selector& selector ) LITEHTML_RETURN_FUNC(nullptr)
-std::shared_ptr<litehtml::element> litehtml::element::select_one( const tstring& selector )		LITEHTML_RETURN_FUNC(nullptr)
+std::shared_ptr<litehtml::element> litehtml::element::select_one_str( const tstring& selector )		LITEHTML_RETURN_FUNC(nullptr)
 std::shared_ptr<litehtml::element> litehtml::element::find_adjacent_sibling(const std::shared_ptr<litehtml::element>& el, const css_selector& selector, bool apply_pseudo /*= true*/, bool* is_pseudo /*= 0*/) LITEHTML_RETURN_FUNC(nullptr)
 std::shared_ptr<litehtml::element> litehtml::element::find_sibling(const std::shared_ptr<litehtml::element>& el, const css_selector& selector, bool apply_pseudo /*= true*/, bool* is_pseudo /*= 0*/) LITEHTML_RETURN_FUNC(nullptr)
 bool litehtml::element::is_nth_last_child(const std::shared_ptr<litehtml::element>& el, int num, int off, bool of_type) const		LITEHTML_RETURN_FUNC(false)
@@ -608,7 +608,7 @@ int litehtml::element::get_font_size()	const										LITEHTML_RETURN_FUNC(0)
 void litehtml::element::get_text( tstring& text )									LITEHTML_EMPTY_FUNC
 void litehtml::element::parse_attributes()											LITEHTML_EMPTY_FUNC
 int litehtml::element::select( const css_selector& selector, bool apply_pseudo)		LITEHTML_RETURN_FUNC(select_no_match)
-int litehtml::element::select( const css_element_selector& selector, bool apply_pseudo /*= true*/ )	LITEHTML_RETURN_FUNC(select_no_match)
+int litehtml::element::select_element( const css_element_selector& selector, bool apply_pseudo /*= true*/ )	LITEHTML_RETURN_FUNC(select_no_match)
 std::shared_ptr<litehtml::element> litehtml::element::find_ancestor(const css_selector& selector, bool apply_pseudo, bool* is_pseudo)	LITEHTML_RETURN_FUNC(nullptr)
 bool litehtml::element::is_first_child_inline(const std::shared_ptr<litehtml::element>& el) const			LITEHTML_RETURN_FUNC(false)
 bool litehtml::element::is_last_child_inline(const std::shared_ptr<litehtml::element>& el)				LITEHTML_RETURN_FUNC(false)

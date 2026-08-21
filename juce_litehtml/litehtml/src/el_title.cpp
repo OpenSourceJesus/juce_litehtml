@@ -2,10 +2,7 @@
 #include "el_title.h"
 #include "document.h"
 
-litehtml::el_title::el_title(const std::shared_ptr<litehtml::document>& doc) : litehtml::html_tag(doc)
-{
-
-}
+/* crust: the constructor is defined inline in el_title.h. */
 
 void litehtml::el_title::parse_attributes()
 {

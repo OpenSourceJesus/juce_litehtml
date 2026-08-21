@@ -4,12 +4,7 @@
 #include "iterators.h"
 
 
-litehtml::el_table::el_table(const std::shared_ptr<litehtml::document>& doc) : html_tag(doc)
-{
-	m_border_spacing_x	= 0;
-	m_border_spacing_y	= 0;
-	m_border_collapse	= border_collapse_separate;
-}
+/* crust: the constructor is defined inline in el_table.h. */
 
 
 bool litehtml::el_table::appendChild(const std::shared_ptr<litehtml::element>& el)

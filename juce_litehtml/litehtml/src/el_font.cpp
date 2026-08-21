@@ -2,10 +2,7 @@
 #include "el_font.h"
 
 
-litehtml::el_font::el_font(const std::shared_ptr<litehtml::document>& doc) : html_tag(doc)
-{
-
-}
+/* crust: the constructor is defined inline in el_font.h. */
 
 void litehtml::el_font::parse_attributes()
 {

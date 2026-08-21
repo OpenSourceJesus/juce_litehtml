@@ -3,10 +3,7 @@
 #include "document.h"
 
 
-litehtml::el_style::el_style(const std::shared_ptr<litehtml::document>& doc) : litehtml::element(doc)
-{
-
-}
+/* crust: the constructor is defined inline in el_style.h. */
 
 void litehtml::el_style::parse_attributes()
 {

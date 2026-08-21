@@ -3,10 +3,7 @@
 #include "document.h"
 
 
-litehtml::el_link::el_link(const std::shared_ptr<litehtml::document>& doc) : litehtml::html_tag(doc)
-{
-
-}
+/* crust: the constructor is defined inline in el_link.h. */
 
 void litehtml::el_link::parse_attributes()
 {

@@ -124,12 +124,12 @@ static JSValue js_createTextNode(JSContext* ctx, JSValueConst self, int argc, JS
 			   function already declares a `tchar_t* text`, and the pass does
 			   not scope locals by block, so the two collided. */
 			const char* text_arg { JS_ToCString(ctx, args[0]) };
-			textNode = std::make_shared<litehtml::el_text>(text_arg, document);
+			textNode = document->create_text_node(text_arg);
 			JS_FreeCString(ctx, text_arg);
 		}
 		else
 		{
-			textNode = std::make_shared<litehtml::el_text>("", document);
+			textNode = document->create_text_node(_t(""));
 		}
 
 		document->stash_element(textNode);
@@ -147,12 +147,19 @@ static JSValue js_getElementById(JSContext* ctx, JSValueConst self, int argc, JS
 	if (auto document { js_get_document(ctx, self) })
 	{
 		std::shared_ptr<litehtml::element> element { nullptr };
-		const auto* id { JS_ToCString(ctx, args[0]) };
+		/* crust: written type, and the selector is built with append --
+		   string `operator+` is not in the subset. */
+		const char* id_arg { JS_ToCString(ctx, args[0]) };
 
 		if (document->root())
-			element = document->root()->select_one("#" + litehtml::tstring(id));
+		{
+			litehtml::tstring id_sel;
+			id_sel.push_back(_t('#'));
+			id_sel.append(id_arg);
+			element = document->root()->select_one_str(id_sel);
+		}
 
-		JS_FreeCString(ctx, id);
+		JS_FreeCString(ctx, id_arg);
 
 		if (element != nullptr)
 			return JS_DupValue(ctx, *element->js_value());
@@ -418,7 +425,7 @@ void litehtml::document::draw( uint_ptr hdc, int x, int y, const position* clip 
 	}
 }
 
-int litehtml::document::cvt_units( const tchar_t* str, int fontSize, bool* is_percent/*= 0*/ ) const
+int litehtml::document::cvt_units_str( const tchar_t* str, int fontSize, bool* is_percent/*= 0*/ ) const
 {
 	if(!str)	return 0;
 
@@ -1126,6 +1133,13 @@ void litehtml::document::append_children_from_utf8(element& parent, const char* 
 		// Fanaly initialize elements
 		child->init();
 	}
+}
+
+/* crust: see document.h -- el_text is constructed here, in a member, rather
+   than from the file-scope JS callback above. */
+std::shared_ptr<litehtml::element> litehtml::document::create_text_node(const tchar_t* text)
+{
+	return std::make_shared<el_text>(text ? text : _t(""), shared_from_this());
 }
 
 void litehtml::document::stash_element(std::shared_ptr<litehtml::element> el)

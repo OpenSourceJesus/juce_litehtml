@@ -2,9 +2,7 @@
 #include "el_para.h"
 #include "document.h"
 
-litehtml::el_para::el_para(const std::shared_ptr<litehtml::document>& doc) : litehtml::html_tag(doc)
-{
-}
+/* crust: the constructor is defined inline in el_para.h. */
 
 void litehtml::el_para::parse_attributes()
 {

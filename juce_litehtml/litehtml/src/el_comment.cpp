@@ -1,10 +1,7 @@
 #include "html.h"
 #include "el_comment.h"
 
-litehtml::el_comment::el_comment(const std::shared_ptr<litehtml::document>& doc) : litehtml::element(doc)
-{
-	m_skip = true;
-}
+/* crust: the constructor is defined inline in el_comment.h. */
 
 bool litehtml::el_comment::is_comment() const
 {
