@@ -94,7 +94,8 @@ static JSValue js_createElement(JSContext* ctx, JSValueConst self, int argc, JSV
 	if (auto document { js_get_document(ctx, self) })
 	{
 		const auto* tagName { JS_ToCString(ctx, args[0]) };
-		auto element { document->create_element(tagName, {}) };
+		/* crust: `auto` written out -- the pass reads types as spelled. */
+		std::shared_ptr<litehtml::element> element { document->create_element(tagName, {}) };
 		JS_FreeCString(ctx, tagName);
 
 		if (element != nullptr)
@@ -119,9 +120,12 @@ static JSValue js_createTextNode(JSContext* ctx, JSValueConst self, int argc, JS
 
 		if (argc > 0)
 		{
-			const auto* text { JS_ToCString(ctx, args[0]) };
-			textNode = std::make_shared<litehtml::el_text>(text, document);
-			JS_FreeCString(ctx, text);
+			/* crust: written type, and renamed off `text` -- the enclosing
+			   function already declares a `tchar_t* text`, and the pass does
+			   not scope locals by block, so the two collided. */
+			const char* text_arg { JS_ToCString(ctx, args[0]) };
+			textNode = std::make_shared<litehtml::el_text>(text_arg, document);
+			JS_FreeCString(ctx, text_arg);
 		}
 		else
 		{
@@ -204,8 +208,10 @@ std::shared_ptr<litehtml::document> litehtml::document::createFromUTF8(const cha
 
 		// parse style sheets linked in document
 		std::shared_ptr<media_query_list> media;
-		for (const auto& css : doc->m_css)
+		/* crust: indexed loop; see document.h on `m_css`. */
+		for (int css_i = 0; css_i < (int)doc->m_css.size(); css_i++)
 		{
+			const css_text& css = doc->m_css[css_i];
 			if (!css.media.empty())
 			{
 				media = media_query_list::create_from_string(css.media, doc);
@@ -831,13 +837,30 @@ void litehtml::document::create_node(void* gnode, elements_vector& elements, boo
 			std::wstring str_in = (const wchar_t*) (utf8_to_wchar(node->v.text.text));
 			if (!parseTextNode)
 			{
-				elements.push_back(std::make_shared<el_text>(litehtml_from_wchar(str_in).c_str(), shared_from_this()));
+				/* crust: named local -- litehtml_from_wchar builds a
+				   wchar_to_utf8 by value, and a method call on a by-value
+				   result has no object to call it on. */
+				litehtml::wchar_to_utf8 whole(str_in);
+				elements.push_back(std::make_shared<el_text>(whole.c_str(), shared_from_this()));
 			}
 			else
 			{
-				m_container->split_text(node->v.text.text,
-					[this, &elements](const tchar_t* text) { elements.push_back(std::make_shared<el_text>(text, shared_from_this())); },
-					[this, &elements](const tchar_t* text) { elements.push_back(std::make_shared<el_space>(text, shared_from_this())); });
+				/* crust: was two capturing closures passed to split_text;
+				   see html.h. The pieces come back in a vector instead. */
+				string_vector parts;
+				std::vector<int> kinds;
+				m_container->split_text_parts(node->v.text.text, parts, kinds);
+				for (int pi = 0; pi < (int)parts.size(); pi++)
+				{
+					if (kinds[pi] == 0)
+					{
+						elements.push_back(std::make_shared<el_text>(parts[pi].c_str(), shared_from_this()));
+					}
+					else
+					{
+						elements.push_back(std::make_shared<el_space>(parts[pi].c_str(), shared_from_this()));
+					}
+				}
 			}
 		}
 		break;
@@ -860,7 +883,9 @@ void litehtml::document::create_node(void* gnode, elements_vector& elements, boo
 			tstring str = litehtml_from_utf8(node->v.text.text);
 			for (size_t i = 0; i < str.length(); i++)
 			{
-				elements.push_back(std::make_shared<el_space>(str.substr(i, 1).c_str(), shared_from_this()));
+				/* crust: substr returns a string by value; bind it first. */
+				tstring one_char = str.substr(i, 1);
+				elements.push_back(std::make_shared<el_space>(one_char.c_str(), shared_from_this()));
 			}
 		}
 		break;

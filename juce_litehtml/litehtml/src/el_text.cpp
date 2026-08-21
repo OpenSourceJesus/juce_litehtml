@@ -2,16 +2,7 @@
 #include "el_text.h"
 #include "document.h"
 
-litehtml::el_text::el_text(const tchar_t* text, const std::shared_ptr<litehtml::document>& doc) : element(doc)
-{
-	if(text)
-	{
-		m_text = text;
-	}
-	m_text_transform	= text_transform_none;
-	m_use_transformed	= false;
-	m_draw_spaces		= true;
-}
+/* crust: the constructor is defined inline in el_text.h. */
 
 void litehtml::el_text::get_content_size( size& sz, int max_width )
 {

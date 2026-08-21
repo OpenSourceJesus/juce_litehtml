@@ -28,30 +28,7 @@ void litehtml::html_tag_js_finalize(JSRuntime*, JSValue val)
 	}
 }
 
-litehtml::html_tag::html_tag(const std::shared_ptr<litehtml::document>& doc) : litehtml::element(doc)
-{
-	m_box_sizing			= box_sizing_content_box;
-	m_z_index				= 0;
-	m_overflow				= overflow_visible;
-	m_box					= nullptr;
-	m_text_align			= text_align_left;
-	m_el_position			= element_position_static;
-	m_display				= display_inline;
-	m_vertical_align		= va_baseline;
-	m_list_style_type		= list_style_type_none;
-	m_list_style_position	= list_style_position_outside;
-	m_float					= float_none;
-	m_clear					= clear_none;
-	m_font					= 0;
-	m_font_size				= 0;
-	m_white_space			= white_space_normal;
-	m_lh_predefined			= false;
-	m_line_height			= 0;
-	m_visibility			= visibility_visible;
-	m_border_spacing_x		= 0;
-	m_border_spacing_y		= 0;
-	m_border_collapse		= border_collapse_separate;
-}
+/* crust: the constructor is defined inline in html_tag.h. */
 
 void litehtml::html_tag::register_js_prototype(JSContext* ctx, JSValue prototype)
 {
@@ -2088,9 +2065,9 @@ void litehtml::html_tag::draw_background( uint_ptr hdc, int x, int y, const posi
 			if(bg)
 			{
 				background_paint bg_paint;
-				init_background_paint(pos, bg_paint, bg);
+				init_background_paint(pos, &bg_paint, bg);
 
-				get_document()->container()->draw_background(hdc, bg_paint);
+				get_document()->container()->draw_background(hdc, &bg_paint);
 			}
 			position border_box = pos;
 			border_box += m_padding;
@@ -2127,7 +2104,7 @@ void litehtml::html_tag::draw_background( uint_ptr hdc, int x, int y, const posi
 
 				if(bg)
 				{
-					init_background_paint(content_box, bg_paint, bg);
+					init_background_paint(content_box, &bg_paint, bg);
 				}
 
 				css_borders bdr;
@@ -2165,7 +2142,7 @@ void litehtml::html_tag::draw_background( uint_ptr hdc, int x, int y, const posi
 				if(bg)
 				{
 					bg_paint.border_radius = bdr.radius.calc_percents(bg_paint.border_box.width, bg_paint.border_box.width);
-					get_document()->container()->draw_background(hdc, bg_paint);
+					get_document()->container()->draw_background(hdc, &bg_paint);
 				}
                 if(bdr.is_visible())
                 {
@@ -2502,26 +2479,50 @@ bool litehtml::html_tag::set_class( const tchar_t* pclass, bool add )
 
 	split_string( pclass, classes, _t(" ") );
 
+	/* crust: both branches walked iterators -- `std::find`, `std::remove` and
+	   the two-iterator `erase` are all outside the subset, and `auto` cannot
+	   deduce from `remove`. Rewritten with indices: the add branch does a
+	   linear search, and the remove branch rebuilds the list without the
+	   matching entries, which is what remove-then-erase amounts to. */
 	if(add)
 	{
-		for( auto & _class : classes  )
+		for( int ci = 0; ci < (int)classes.size(); ci++ )
 		{
-			if(std::find(m_class_values.begin(), m_class_values.end(), _class) == m_class_values.end())
+			bool found = false;
+			for( int vi = 0; vi < (int)m_class_values.size(); vi++ )
 			{
-				m_class_values.push_back( std::move( _class ) );
+				if(m_class_values[vi] == classes[ci])
+				{
+					found = true;
+					break;
+				}
+			}
+			if(!found)
+			{
+				m_class_values.push_back( classes[ci] );
 				changed = true;
 			}
 		}
 	} else
 	{
-		for( const auto & _class : classes )
+		for( int ci = 0; ci < (int)classes.size(); ci++ )
 		{
-			auto end = std::remove(m_class_values.begin(), m_class_values.end(), _class);
-
-			if(end != m_class_values.end())
+			string_vector kept;
+			for( int vi = 0; vi < (int)m_class_values.size(); vi++ )
 			{
-				m_class_values.erase(end, m_class_values.end());
-				changed = true;
+				if(m_class_values[vi] == classes[ci])
+				{
+					changed = true;
+				}
+				else
+				{
+					kept.push_back( m_class_values[vi] );
+				}
+			}
+			m_class_values.clear();
+			for( int ki = 0; ki < (int)kept.size(); ki++ )
+			{
+				m_class_values.push_back( kept[ki] );
 			}
 		}
 	}
@@ -2869,11 +2870,14 @@ litehtml::element_position litehtml::html_tag::get_element_position(css_offsets*
 	return m_el_position;
 }
 
-void litehtml::html_tag::init_background_paint(position pos, background_paint &bg_paint, const background* bg)
+/* crust: `bg_paint` is an explicit pointer rather than a reference. A
+   reference parameter here was read as handing the object over by value,
+   which would have the callee destroy a buffer the caller still owns. */
+void litehtml::html_tag::init_background_paint(position pos, background_paint* bg_paint, const background* bg)
 {
 	if(!bg) return;
 
-	bg_paint = *bg;
+	*bg_paint = *bg;
 	position content_box	= pos;
 	position padding_box	= pos;
 	padding_box += m_padding;
@@ -2883,37 +2887,37 @@ void litehtml::html_tag::init_background_paint(position pos, background_paint &b
 	switch(bg->m_clip)
 	{
 	case litehtml::background_box_padding:
-		bg_paint.clip_box = padding_box;
+		bg_paint->clip_box = padding_box;
 		break;
 	case litehtml::background_box_content:
-		bg_paint.clip_box = content_box;
+		bg_paint->clip_box = content_box;
 		break;
 	default:
-		bg_paint.clip_box = border_box;
+		bg_paint->clip_box = border_box;
 		break;
 	}
 
 	switch(bg->m_origin)
 	{
 	case litehtml::background_box_border:
-		bg_paint.origin_box = border_box;
+		bg_paint->origin_box = border_box;
 		break;
 	case litehtml::background_box_content:
-		bg_paint.origin_box = content_box;
+		bg_paint->origin_box = content_box;
 		break;
 	default:
-		bg_paint.origin_box = padding_box;
+		bg_paint->origin_box = padding_box;
 		break;
 	}
 
-	if(!bg_paint.image.empty())
+	if(!bg_paint->image.empty())
 	{
-		get_document()->container()->get_image_size(bg_paint.image.c_str(), bg_paint.baseurl.c_str(), bg_paint.image_size);
-		if(bg_paint.image_size.width && bg_paint.image_size.height)
+		get_document()->container()->get_image_size(bg_paint->image.c_str(), bg_paint->baseurl.c_str(), bg_paint->image_size);
+		if(bg_paint->image_size.width && bg_paint->image_size.height)
 		{
-			litehtml::size img_new_sz = bg_paint.image_size;
-			double img_ar_width		= (double) bg_paint.image_size.width / (double) bg_paint.image_size.height;
-			double img_ar_height	= (double) bg_paint.image_size.height / (double) bg_paint.image_size.width;
+			litehtml::size img_new_sz = bg_paint->image_size;
+			double img_ar_width		= (double) bg_paint->image_size.width / (double) bg_paint->image_size.height;
+			double img_ar_height	= (double) bg_paint->image_size.height / (double) bg_paint->image_size.width;
 
 
 			if(bg->m_position.width.is_predefined())
@@ -2921,57 +2925,57 @@ void litehtml::html_tag::init_background_paint(position pos, background_paint &b
 				switch(bg->m_position.width.predef())
 				{
 				case litehtml::background_size_contain:
-					if( (int) ((double) bg_paint.origin_box.width * img_ar_height) <= bg_paint.origin_box.height )
+					if( (int) ((double) bg_paint->origin_box.width * img_ar_height) <= bg_paint->origin_box.height )
 					{
-						img_new_sz.width = bg_paint.origin_box.width;
-						img_new_sz.height	= (int) ((double) bg_paint.origin_box.width * img_ar_height);
+						img_new_sz.width = bg_paint->origin_box.width;
+						img_new_sz.height	= (int) ((double) bg_paint->origin_box.width * img_ar_height);
 					} else
 					{
-						img_new_sz.height = bg_paint.origin_box.height;
-						img_new_sz.width	= (int) ((double) bg_paint.origin_box.height * img_ar_width);
+						img_new_sz.height = bg_paint->origin_box.height;
+						img_new_sz.width	= (int) ((double) bg_paint->origin_box.height * img_ar_width);
 					}
 					break;
 				case litehtml::background_size_cover:
-					if( (int) ((double) bg_paint.origin_box.width * img_ar_height) >= bg_paint.origin_box.height )
+					if( (int) ((double) bg_paint->origin_box.width * img_ar_height) >= bg_paint->origin_box.height )
 					{
-						img_new_sz.width = bg_paint.origin_box.width;
-						img_new_sz.height	= (int) ((double) bg_paint.origin_box.width * img_ar_height);
+						img_new_sz.width = bg_paint->origin_box.width;
+						img_new_sz.height	= (int) ((double) bg_paint->origin_box.width * img_ar_height);
 					} else
 					{
-						img_new_sz.height = bg_paint.origin_box.height;
-						img_new_sz.width	= (int) ((double) bg_paint.origin_box.height * img_ar_width);
+						img_new_sz.height = bg_paint->origin_box.height;
+						img_new_sz.width	= (int) ((double) bg_paint->origin_box.height * img_ar_width);
 					}
 					break;
 					break;
 				case litehtml::background_size_auto:
 					if(!bg->m_position.height.is_predefined())
 					{
-						img_new_sz.height	= bg->m_position.height.calc_percent(bg_paint.origin_box.height);
+						img_new_sz.height	= bg->m_position.height.calc_percent(bg_paint->origin_box.height);
 						img_new_sz.width	= (int) ((double) img_new_sz.height * img_ar_width);
 					}
 					break;
 				}
 			} else
 			{
-				img_new_sz.width = bg->m_position.width.calc_percent(bg_paint.origin_box.width);
+				img_new_sz.width = bg->m_position.width.calc_percent(bg_paint->origin_box.width);
 				if(bg->m_position.height.is_predefined())
 				{
 					img_new_sz.height = (int) ((double) img_new_sz.width * img_ar_height);
 				} else
 				{
-					img_new_sz.height = bg->m_position.height.calc_percent(bg_paint.origin_box.height);
+					img_new_sz.height = bg->m_position.height.calc_percent(bg_paint->origin_box.height);
 				}
 			}
 
-			bg_paint.image_size = img_new_sz;
-			bg_paint.position_x = bg_paint.origin_box.x + (int) bg->m_position.x.calc_percent(bg_paint.origin_box.width - bg_paint.image_size.width);
-			bg_paint.position_y = bg_paint.origin_box.y + (int) bg->m_position.y.calc_percent(bg_paint.origin_box.height - bg_paint.image_size.height);
+			bg_paint->image_size = img_new_sz;
+			bg_paint->position_x = bg_paint->origin_box.x + (int) bg->m_position.x.calc_percent(bg_paint->origin_box.width - bg_paint->image_size.width);
+			bg_paint->position_y = bg_paint->origin_box.y + (int) bg->m_position.y.calc_percent(bg_paint->origin_box.height - bg_paint->image_size.height);
 		}
 
 	}
-	bg_paint.border_radius	= m_css_borders.radius.calc_percents(border_box.width, border_box.height);
-	bg_paint.border_box		= border_box;
-	bg_paint.is_root		= !have_parent();
+	bg_paint->border_radius	= m_css_borders.radius.calc_percents(border_box.width, border_box.height);
+	bg_paint->border_box		= border_box;
+	bg_paint->is_root		= !have_parent();
 }
 
 litehtml::visibility litehtml::html_tag::get_visibility() const
@@ -3035,7 +3039,8 @@ void litehtml::html_tag::draw_list_marker( uint_ptr hdc, const position &pos )
 	{
 		if (m_list_style_type >= list_style_type_armenian)
 		{
-			auto tw_space = get_document()->container()->text_width(_t(" "), lm.font);
+			/* crust: `auto` written out; text_width returns int. */
+			int tw_space = get_document()->container()->text_width(_t(" "), lm.font);
 			lm.pos.x = pos.x - tw_space * 2;
 			lm.pos.width = tw_space;
 		}
@@ -3056,7 +3061,7 @@ void litehtml::html_tag::draw_list_marker( uint_ptr hdc, const position &pos )
 		else
 		{
 			marker_text += _t(".");
-			auto tw = get_document()->container()->text_width(marker_text.c_str(), lm.font);
+			int tw = get_document()->container()->text_width(marker_text.c_str(), lm.font);
 			auto text_pos = lm.pos;
 			text_pos.move_to(text_pos.right() - tw, text_pos.y);
 			text_pos.width = tw;
@@ -3077,7 +3082,9 @@ litehtml::tstring litehtml::html_tag::get_list_marker_text(int index)
 		return t_to_string(index);
 	case litehtml::list_style_type_decimal_leading_zero:
 		{
-			auto txt = t_to_string(index);
+			/* crust: `auto` written out -- t_to_string is a macro around
+			   std::to_string, so there is no declaration to read a type from. */
+			tstring txt = t_to_string(index);
 			if (txt.length() == 1)
 			{
 				txt = _t("0") + txt;
@@ -4663,8 +4670,13 @@ int litehtml::html_tag::render_table(int x, int y, int max_width, bool /*second_
 	// Table border doesn't round the caption so we have to start caption in the border position
 	int captions_height = -border_top();
 
-	for (auto& caption : *m_grid->captions())
+	/* crust: the range has to be a name -- `*m_grid->captions()` is an
+	   expression, and the length is read from how the range is written.
+	   Bind the pointer to a local and walk it by index. */
+	elements_vector* caption_list = m_grid->captions();
+	for (int cap_i = 0; cap_i < (int)caption_list->size(); cap_i++)
 	{
+		std::shared_ptr<litehtml::element>& caption = (*caption_list)[cap_i];
 		caption->render(-border_left(), captions_height, table_width + border_left() + border_right());
 		captions_height += caption->height();
 	}
@@ -4816,8 +4828,13 @@ void litehtml::html_tag::draw_children_table(uint_ptr hdc, int x, int y, const p
 	position pos = m_pos;
 	pos.x += x;
 	pos.y += y;
-	for (auto& caption : *m_grid->captions())
+	/* crust: the range has to be a name -- `*m_grid->captions()` is an
+	   expression, and the length is read from how the range is written.
+	   Bind the pointer to a local and walk it by index. */
+	elements_vector* caption_list = m_grid->captions();
+	for (int cap_i = 0; cap_i < (int)caption_list->size(); cap_i++)
 	{
+		std::shared_ptr<litehtml::element>& caption = (*caption_list)[cap_i];
         if (flag == draw_block)
         {
 		    caption->draw(hdc, pos.x, pos.y, clip);

@@ -37,14 +37,7 @@ litehtml::element_js_object_ref::~element_js_object_ref()
 
 //==============================================================================
 
-litehtml::element::element(const std::shared_ptr<litehtml::document>& doc) : m_doc(doc)
-{
-	m_box		= nullptr;
-	m_skip		= false;
-
-	m_jsContext = nullptr;
-	m_jsValue 	= JS_UNINITIALIZED;
-}
+/* crust: the constructor is defined inline in element.h. */
 
 litehtml::element::~element()
 {

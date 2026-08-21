@@ -1,23 +1,10 @@
 #include "html.h"
 #include "el_before_after.h"
+/* crust: the constructors are defined inline in el_before_after.h. */
 #include "el_text.h"
 #include "el_space.h"
 #include "el_image.h"
 #include "utf8_strings.h"
-
-litehtml::el_before_after_base::el_before_after_base(const std::shared_ptr<litehtml::document>& doc) : html_tag(doc)
-{
-}
-
-litehtml::el_before::el_before(const std::shared_ptr<litehtml::document>& doc) : el_before_after_base(doc)
-{
-	init_pseudo(true);
-}
-
-litehtml::el_after::el_after(const std::shared_ptr<litehtml::document>& doc) : el_before_after_base(doc)
-{
-	init_pseudo(false);
-}
 
 void litehtml::el_before_after_base::init_pseudo(bool before)
 {
@@ -126,7 +113,10 @@ void litehtml::el_before_after_base::add_text( const tstring& txt )
 					word.clear();
 				}
 
-				std::shared_ptr<litehtml::element> el = std::make_shared<el_space>(txt.substr(i, 1).c_str(), get_document());
+				/* crust: substr returns a string by value, so there is no object
+				   to call c_str on; bind it to a local first. */
+				tstring one_char = txt.substr(i, 1);
+				std::shared_ptr<litehtml::element> el = std::make_shared<el_space>(one_char.c_str(), get_document());
 				appendChild(el);
 			} else
 			{

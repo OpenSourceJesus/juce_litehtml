@@ -2,10 +2,7 @@
 #include "el_image.h"
 #include "document.h"
 
-litehtml::el_image::el_image(const std::shared_ptr<litehtml::document>& doc) : html_tag(doc)
-{
-	m_display = display_inline_block;
-}
+/* crust: the constructor is defined inline in el_image.h. */
 
 litehtml::el_image::~el_image( void )
 {
@@ -215,9 +212,9 @@ void litehtml::el_image::draw( uint_ptr hdc, int x, int y, const position* clip 
 		if (bg)
 		{
 			background_paint bg_paint;
-			init_background_paint(pos, bg_paint, bg);
+			init_background_paint(pos, &bg_paint, bg);
 
-			get_document()->container()->draw_background(hdc, bg_paint);
+			get_document()->container()->draw_background(hdc, &bg_paint);
 		}
 	}
 
@@ -225,20 +222,23 @@ void litehtml::el_image::draw( uint_ptr hdc, int x, int y, const position* clip 
 	if(pos.does_intersect(clip))
 	{
 		if (pos.width > 0 && pos.height > 0) {
-			background_paint bg;
-			bg.image				= m_src;
-			bg.clip_box				= pos;
-			bg.origin_box			= pos;
-			bg.border_box			= pos;
-			bg.border_box			+= m_padding;
-			bg.border_box			+= m_borders;
-			bg.repeat				= background_repeat_no_repeat;
-			bg.image_size.width		= pos.width;
-			bg.image_size.height	= pos.height;
-			bg.border_radius		= m_css_borders.radius.calc_percents(bg.border_box.width, bg.border_box.height);
-			bg.position_x			= pos.x;
-			bg.position_y			= pos.y;
-			get_document()->container()->draw_background(hdc, bg);
+			background_paint img_bg;	/* crust: renamed from `bg`. This function
+			   already has a `const background* bg` in an outer scope, and the
+			   pass does not scope locals by block -- it took this by-value one
+			   as the type of the `bg` handed to init_background_paint above. */
+			img_bg.image				= m_src;
+			img_bg.clip_box				= pos;
+			img_bg.origin_box			= pos;
+			img_bg.border_box			= pos;
+			img_bg.border_box			+= m_padding;
+			img_bg.border_box			+= m_borders;
+			img_bg.repeat				= background_repeat_no_repeat;
+			img_bg.image_size.width		= pos.width;
+			img_bg.image_size.height	= pos.height;
+			img_bg.border_radius		= m_css_borders.radius.calc_percents(img_bg.border_box.width, img_bg.border_box.height);
+			img_bg.position_x			= pos.x;
+			img_bg.position_y			= pos.y;
+			get_document()->container()->draw_background(hdc, &img_bg);
 		}
 	}
 

@@ -209,7 +209,7 @@ int litehtml::t_strncasecmp(const litehtml::tchar_t *s1, const litehtml::tchar_t
 	return 0;
 }
 
-void litehtml::document_container::split_text(const char* text, const std::function<void(const tchar_t*)>& on_word, const std::function<void(const tchar_t*)>& on_space)
+void litehtml::document_container::split_text_parts(const char* text, string_vector& parts, std::vector<int>& kinds)
 {
 	std::wstring str;
 	std::wstring str_in = (const wchar_t*)(utf8_to_wchar(text));
@@ -221,11 +221,21 @@ void litehtml::document_container::split_text(const char* text, const std::funct
 		{
 			if (!str.empty())
 			{
-				on_word(litehtml_from_wchar(str.c_str()));
+				/* crust: a named local -- litehtml_from_wchar builds a
+				   wchar_to_utf8 by value, and a method call on a by-value
+				   result has no address to take. */
+				litehtml::wchar_to_utf8 piece(str.c_str());
+				parts.push_back(piece.c_str());
+				kinds.push_back(0);
 				str.clear();
 			}
 			str += c;
-			on_space(litehtml_from_wchar(str.c_str()));
+			/* crust: a named local -- litehtml_from_wchar builds a
+			   wchar_to_utf8 by value, and a method call on a by-value
+			   result has no address to take. */
+			litehtml::wchar_to_utf8 piece(str.c_str());
+			parts.push_back(piece.c_str());
+			kinds.push_back(1);
 			str.clear();
 		}
 		// CJK character range
@@ -233,11 +243,21 @@ void litehtml::document_container::split_text(const char* text, const std::funct
 		{
 			if (!str.empty())
 			{
-				on_word(litehtml_from_wchar(str.c_str()));
+				/* crust: a named local -- litehtml_from_wchar builds a
+				   wchar_to_utf8 by value, and a method call on a by-value
+				   result has no address to take. */
+				litehtml::wchar_to_utf8 piece(str.c_str());
+				parts.push_back(piece.c_str());
+				kinds.push_back(0);
 				str.clear();
 			}
 			str += c;
-			on_word(litehtml_from_wchar(str.c_str()));
+			/* crust: a named local -- litehtml_from_wchar builds a
+			   wchar_to_utf8 by value, and a method call on a by-value
+			   result has no address to take. */
+			litehtml::wchar_to_utf8 piece(str.c_str());
+			parts.push_back(piece.c_str());
+			kinds.push_back(0);
 			str.clear();
 		}
 		else
@@ -247,6 +267,27 @@ void litehtml::document_container::split_text(const char* text, const std::funct
 	}
 	if (!str.empty())
 	{
-		on_word(litehtml_from_wchar(str.c_str()));
+		/* crust: a named local -- litehtml_from_wchar builds a
+		   wchar_to_utf8 by value, and a method call on a by-value
+		   result has no address to take. */
+		litehtml::wchar_to_utf8 piece(str.c_str());
+		parts.push_back(piece.c_str());
+		kinds.push_back(0);
+	}
+}
+
+/* crust: kept so existing host code that calls the callback form still
+   works; it is not called from inside litehtml any more. */
+void litehtml::document_container::split_text(const char* text, const std::function<void(const tchar_t*)>& on_word, const std::function<void(const tchar_t*)>& on_space)
+{
+	string_vector parts;
+	std::vector<int> kinds;
+	split_text_parts(text, parts, kinds);
+	for (int i = 0; i < (int)parts.size(); i++)
+	{
+		if (kinds[i] == 0)
+			on_word(parts[i].c_str());
+		else
+			on_space(parts[i].c_str());
 	}
 }

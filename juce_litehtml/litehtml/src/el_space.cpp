@@ -2,9 +2,7 @@
 #include "document.h"
 #include "el_space.h"
 
-litehtml::el_space::el_space(const tchar_t* text, const std::shared_ptr<litehtml::document>& doc) : el_text(text, doc)
-{
-}
+/* crust: the constructor is defined inline in el_space.h. */
 
 bool litehtml::el_space::is_white_space() const
 {
