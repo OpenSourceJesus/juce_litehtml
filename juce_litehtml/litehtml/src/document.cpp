@@ -91,9 +91,12 @@ static JSValue js_createElement(JSContext* ctx, JSValueConst self, int argc, JSV
 	if (argc != 1)
 		return JS_UNDEFINED;
 
-	if (auto document { js_get_document(ctx, self) })
+	/* crust: `auto` written out -- the pass reads types as spelled. */
+	std::shared_ptr<litehtml::document> document { js_get_document(ctx, self) };
+	if (document)
 	{
-		const auto* tagName { JS_ToCString(ctx, args[0]) };
+		/* crust: `auto` written out. */
+		const char* tagName { JS_ToCString(ctx, args[0]) };
 		/* crust: `auto` written out -- the pass reads types as spelled. */
 		std::shared_ptr<litehtml::element> element { document->create_element(tagName, {}) };
 		JS_FreeCString(ctx, tagName);
@@ -113,7 +116,9 @@ static JSValue js_createTextNode(JSContext* ctx, JSValueConst self, int argc, JS
 	if (argc > 1)
 		return JS_EXCEPTION;
 
-	if (auto document { js_get_document(ctx, self) })
+	/* crust: `auto` written out -- the pass reads types as spelled. */
+	std::shared_ptr<litehtml::document> document { js_get_document(ctx, self) };
+	if (document)
 	{
 		litehtml::tchar_t* text { nullptr };
 		std::shared_ptr<litehtml::element> textNode { nullptr };
@@ -144,7 +149,9 @@ static JSValue js_getElementById(JSContext* ctx, JSValueConst self, int argc, JS
 	if (argc != 1)
 		return JS_EXCEPTION;
 
-	if (auto document { js_get_document(ctx, self) })
+	/* crust: `auto` written out -- the pass reads types as spelled. */
+	std::shared_ptr<litehtml::document> document { js_get_document(ctx, self) };
+	if (document)
 	{
 		std::shared_ptr<litehtml::element> element { nullptr };
 		/* crust: written type, and the selector is built with append --
@@ -340,7 +347,12 @@ litehtml::uint_ptr litehtml::document::add_font( const tchar_t* name, int size, 
 			}
 		}
 
-		font_item fi= {0};
+		/* crust: aggregate initialization is not in the subset. Identical
+		   either way: `font_metrics` has a default constructor that zeroes
+		   itself and runs in both spellings, so only `font` was ever being
+		   set by the braces. */
+		font_item fi;
+		fi.font = 0;
 
 		fi.font = m_container->create_font(name, size, fw, fs, decor, &fi.metrics);
 		m_fonts[key] = fi;
@@ -785,7 +797,9 @@ void litehtml::document::add_media_list( const std::shared_ptr<media_query_list>
 
 void litehtml::document::create_node(void* gnode, elements_vector& elements, bool parseTextNode)
 {
-	auto* node = (GumboNode*)gnode;
+	/* crust: `auto` written out -- the pass reads types as spelled, and a
+	   cast expression has no spelling to deduce from. */
+	GumboNode* node = (GumboNode*)gnode;
 	switch (node->type)
 	{
 	case GUMBO_NODE_ELEMENT:

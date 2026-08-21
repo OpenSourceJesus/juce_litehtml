@@ -2091,14 +2091,16 @@ void litehtml::html_tag::draw_background( uint_ptr hdc, int x, int y, const posi
 		background_paint bg_paint;
 		position content_box;
 
-		for(auto box = boxes.begin(); box != boxes.end(); box++)
+		/* crust: indexed loop -- iterators are a separate feature and are not
+		   part of the subset, and `*box` is not a name the pass can take. */
+		for(int box_i = 0; box_i < (int)boxes.size(); box_i++)
 		{
-			box->x	+= x;
-			box->y	+= y;
+			boxes[box_i].x	+= x;
+			boxes[box_i].y	+= y;
 
-			if(box->does_intersect(clip))
+			if(boxes[box_i].does_intersect(clip))
 			{
-				content_box = *box;
+				content_box = boxes[box_i];
 				content_box -= m_borders;
 				content_box -= m_padding;
 
@@ -2107,48 +2109,51 @@ void litehtml::html_tag::draw_background( uint_ptr hdc, int x, int y, const posi
 					init_background_paint(content_box, &bg_paint, bg);
 				}
 
-				css_borders bdr;
+				css_borders inline_bdr;	/* crust: renamed from `bdr`. The enclosing
+				   function already has a `borders bdr` in an outer scope, and the
+				   pass does not scope locals by block. */
 
 				// set left borders radius for the first box
-				if(box == boxes.begin())
+				if(box_i == 0)
 				{
-					bdr.radius.bottom_left_x	= m_css_borders.radius.bottom_left_x;
-					bdr.radius.bottom_left_y	= m_css_borders.radius.bottom_left_y;
-					bdr.radius.top_left_x		= m_css_borders.radius.top_left_x;
-					bdr.radius.top_left_y		= m_css_borders.radius.top_left_y;
+					inline_bdr.radius.bottom_left_x	= m_css_borders.radius.bottom_left_x;
+					inline_bdr.radius.bottom_left_y	= m_css_borders.radius.bottom_left_y;
+					inline_bdr.radius.top_left_x		= m_css_borders.radius.top_left_x;
+					inline_bdr.radius.top_left_y		= m_css_borders.radius.top_left_y;
 				}
 
 				// set right borders radius for the last box
-				if(box == boxes.end() - 1)
+				if(box_i == (int)boxes.size() - 1)
 				{
-					bdr.radius.bottom_right_x	= m_css_borders.radius.bottom_right_x;
-					bdr.radius.bottom_right_y	= m_css_borders.radius.bottom_right_y;
-					bdr.radius.top_right_x		= m_css_borders.radius.top_right_x;
-					bdr.radius.top_right_y		= m_css_borders.radius.top_right_y;
+					inline_bdr.radius.bottom_right_x	= m_css_borders.radius.bottom_right_x;
+					inline_bdr.radius.bottom_right_y	= m_css_borders.radius.bottom_right_y;
+					inline_bdr.radius.top_right_x		= m_css_borders.radius.top_right_x;
+					inline_bdr.radius.top_right_y		= m_css_borders.radius.top_right_y;
 				}
 
 
-				bdr.top		= m_css_borders.top;
-				bdr.bottom	= m_css_borders.bottom;
-				if(box == boxes.begin())
+				inline_bdr.top		= m_css_borders.top;
+				inline_bdr.bottom	= m_css_borders.bottom;
+				if(box_i == 0)
 				{
-					bdr.left	= m_css_borders.left;
+					inline_bdr.left	= m_css_borders.left;
 				}
-				if(box == boxes.end() - 1)
+				if(box_i == (int)boxes.size() - 1)
 				{
-					bdr.right	= m_css_borders.right;
+					inline_bdr.right	= m_css_borders.right;
 				}
 
 				if(bg)
 				{
-					bg_paint.border_radius = bdr.radius.calc_percents(bg_paint.border_box.width, bg_paint.border_box.width);
+					bg_paint.border_radius = inline_bdr.radius.calc_percents(bg_paint.border_box.width, bg_paint.border_box.width);
 					get_document()->container()->draw_background(hdc, &bg_paint);
 				}
-                if(bdr.is_visible())
+                if(inline_bdr.is_visible())
                 {
-                    borders b = bdr;
-                    b.radius = bdr.radius.calc_percents(box->width, box->height);
-                    get_document()->container()->draw_borders(hdc, b, *box, false);
+                    borders b(inline_bdr);	/* crust: converting constructor from
+					   css_borders, not a copy -- the `=` spelling was read as one. */
+                    b.radius = inline_bdr.radius.calc_percents(boxes[box_i].width, boxes[box_i].height);
+                    get_document()->container()->draw_borders(hdc, b, boxes[box_i], false);
                 }
             }
 		}
@@ -2819,7 +2824,12 @@ size_t litehtml::html_tag::get_children_count() const
 
 std::shared_ptr<litehtml::element> litehtml::html_tag::get_child( int idx ) const
 {
-	return m_children[idx];
+	/* crust: through a local. A returned bare local is moved out; returning
+	   the subscript itself would hand the caller a copy of something it does
+	   not own. Naming the inherited `m_children` needed a cpprust fix -- see
+	   the `_base` hop in _named_object. */
+	std::shared_ptr<litehtml::element> ret = m_children[idx];
+	return ret;
 }
 
 void litehtml::html_tag::set_css_width( css_length& w )
