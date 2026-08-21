@@ -31,7 +31,13 @@ namespace litehtml
 		std::weak_ptr<litehtml::element> element {};
 		/* crust: by const reference. A by-value owning parameter is
 		   destroyed by the callee, and the caller still owns it too. */
-		element_js_object_ref(const std::shared_ptr<litehtml::element>& el);
+		/* crust: defined inline. A constructor only declared in a
+		   translation is not registered, so `new element_js_object_ref(..)`
+		   found no constructor to call. The destructor stays out of line --
+		   its body needs a complete `element`, which is not available here. */
+		element_js_object_ref(const std::shared_ptr<litehtml::element>& el)
+			: element { el }
+		{}
 		~element_js_object_ref();
 	};
 
