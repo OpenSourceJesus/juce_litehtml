@@ -117,15 +117,15 @@ GdkPixbuf* GtkContainer::pixbufFor (const char* src)
     return pixbufs[last].pixbuf;
 }
 
-void GtkContainer::draw_background (litehtml::uint_ptr hdc, const litehtml::background_paint& bg)
+void GtkContainer::draw_background (litehtml::uint_ptr hdc, const litehtml::background_paint* bg)
 {
     // Records the display list and fills the background colour.
     CairoContainer::draw_background (hdc, bg);
 
-    if (target == 0 || bg.image.empty())
+    if (target == 0 || bg->image.empty())
         return;
 
-    GdkPixbuf* pixbuf = pixbufFor (bg.image.c_str());
+    GdkPixbuf* pixbuf = pixbufFor (bg->image.c_str());
 
     if (pixbuf == 0)
         return;
@@ -136,8 +136,8 @@ void GtkContainer::draw_background (litehtml::uint_ptr hdc, const litehtml::back
     if (srcW < 1 || srcH < 1)
         return;
 
-    const double destW = (double) bg.border_box.width;
-    const double destH = (double) bg.border_box.height;
+    const double destW = (double) bg->border_box.width;
+    const double destH = (double) bg->border_box.height;
 
     if (destW < 1.0 || destH < 1.0)
         return;
@@ -148,11 +148,11 @@ void GtkContainer::draw_background (litehtml::uint_ptr hdc, const litehtml::back
     // worked out the box from the intrinsic size plus any CSS, so scaling to
     // fill it is right even when the two differ.
     cairo_rectangle (target,
-                     (double) bg.border_box.x, (double) bg.border_box.y,
+                     (double) bg->border_box.x, (double) bg->border_box.y,
                      destW, destH);
     cairo_clip (target);
 
-    cairo_translate (target, (double) bg.border_box.x, (double) bg.border_box.y);
+    cairo_translate (target, (double) bg->border_box.x, (double) bg->border_box.y);
     cairo_scale (target, destW / (double) srcW, destH / (double) srcH);
 
     gdk_cairo_set_source_pixbuf (target, pixbuf, 0.0, 0.0);
