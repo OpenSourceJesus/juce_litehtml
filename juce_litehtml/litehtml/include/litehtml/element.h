@@ -55,7 +55,18 @@ namespace litehtml
 	public:
 		static JSClassID			jsClassID;
 
-		explicit element(const std::shared_ptr<litehtml::document>& doc);
+		/* crust: defined here rather than out of line. A constructor that is
+		   only declared in this translation is not registered, so neither a
+		   `make_shared` by name nor a derived class's base initializer could
+		   find it. Inlining the body makes it present in every translation. */
+		explicit element(const std::shared_ptr<litehtml::document>& doc) : m_doc(doc)
+		{
+			m_box		= nullptr;
+			m_skip		= false;
+
+			m_jsContext = nullptr;
+			m_jsValue 	= JS_UNINITIALIZED;
+		}
         virtual ~element();
 
 		void init_js_value();

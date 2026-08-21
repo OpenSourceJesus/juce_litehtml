@@ -10,7 +10,11 @@ namespace litehtml
 	{
 		tstring	m_src;
 	public:
-		el_image(const std::shared_ptr<litehtml::document>& doc);
+		/* crust: defined here rather than out of line -- see el_text.h. */
+		el_image(const std::shared_ptr<litehtml::document>& doc) : html_tag(doc)
+		{
+			m_display = display_inline_block;
+		}
 		virtual ~el_image(void);
 
 		virtual int		line_height() const override;

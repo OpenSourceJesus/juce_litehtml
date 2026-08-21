@@ -45,7 +45,10 @@ namespace litehtml
 		virtual void				draw_list_marker(litehtml::uint_ptr hdc, const litehtml::list_marker& marker) = 0;
 		virtual void				load_image(const litehtml::tchar_t* src, const litehtml::tchar_t* baseurl, bool redraw_on_ready) = 0;
 		virtual void				get_image_size(const litehtml::tchar_t* src, const litehtml::tchar_t* baseurl, litehtml::size& sz) = 0;
-		virtual void				draw_background(litehtml::uint_ptr hdc, const litehtml::background_paint& bg) = 0;
+		/* crust: `bg` is a pointer, not a reference. A reference to an owning
+		   type was read as handing the object over by value, which would have
+		   the callee destroy a buffer the caller still owns. */
+		virtual void				draw_background(litehtml::uint_ptr hdc, const litehtml::background_paint* bg) = 0;
 		virtual void				draw_borders(litehtml::uint_ptr hdc, const litehtml::borders& borders, const litehtml::position& draw_pos, bool root) = 0;
 
 		virtual	void				set_caption(const litehtml::tchar_t* caption) = 0;
@@ -67,6 +70,13 @@ namespace litehtml
 		virtual void				get_language(litehtml::tstring& language, litehtml::tstring & culture) const = 0;
 		virtual litehtml::tstring resolve_color(const litehtml::tstring& /*color*/) const { return litehtml::tstring(); }
 		virtual void				split_text(const char* text, const std::function<void(const tchar_t*)>& on_word, const std::function<void(const tchar_t*)>& on_space);
+		/* crust: the callback form above cannot be called from the subset --
+		   the two callbacks were capturing closures at the call site, and a
+		   closure is inlined where it is called, so there is no value to
+		   hand over. This variant fills two parallel vectors instead: the
+		   piece, and 0 for a word or 1 for a space. `split_text` delegates
+		   to it, so overriding this one changes both. */
+		virtual void				split_text_parts(const char* text, string_vector& parts, std::vector<int>& kinds);
 
 	protected:
 		~document_container() = default;

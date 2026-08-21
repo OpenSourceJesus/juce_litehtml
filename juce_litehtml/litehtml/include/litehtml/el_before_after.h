@@ -17,7 +17,13 @@ namespace litehtml
 	class el_before_after_base : public html_tag
 	{
 	public:
-		el_before_after_base(const std::shared_ptr<litehtml::document>& doc);
+		/* crust: defined inline, like every other constructor here. The base
+		   initializer has to be visible where the class is defined -- from an
+		   out-of-line definition the pass saw no base arguments at all and
+		   asked html_tag for a default constructor. */
+		el_before_after_base(const std::shared_ptr<litehtml::document>& doc) : html_tag(doc)
+		{
+		}
 
 		void add_style(const tstring& style, const tstring& baseurl) override;
 		void apply_stylesheet(const litehtml::css& stylesheet) override;
@@ -38,13 +44,19 @@ namespace litehtml
 	class el_before : public el_before_after_base
 	{
 	public:
-		explicit el_before(const std::shared_ptr<litehtml::document>& doc);
+		explicit el_before(const std::shared_ptr<litehtml::document>& doc) : el_before_after_base(doc)
+		{
+			init_pseudo(true);
+		}
 	};
 
 	class el_after : public el_before_after_base
 	{
 	public:
-		explicit el_after(const std::shared_ptr<litehtml::document>& doc);
+		explicit el_after(const std::shared_ptr<litehtml::document>& doc) : el_before_after_base(doc)
+		{
+			init_pseudo(false);
+		}
 	};
 }
 

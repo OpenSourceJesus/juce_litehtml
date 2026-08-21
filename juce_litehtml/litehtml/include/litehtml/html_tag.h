@@ -109,7 +109,34 @@ namespace litehtml
 	public:
 		static JSClassID jsClassID;
 
-		explicit html_tag(const std::shared_ptr<litehtml::document>& doc);
+		/* crust: defined here rather than out of line. A constructor that is
+		   only declared in this translation is not registered, so neither a
+		   `make_shared` by name nor a derived class's base initializer could
+		   find it. Inlining the body makes it present in every translation. */
+		explicit html_tag(const std::shared_ptr<litehtml::document>& doc) : litehtml::element(doc)
+		{
+		m_box_sizing			= box_sizing_content_box;
+		m_z_index				= 0;
+		m_overflow				= overflow_visible;
+		m_box					= nullptr;
+		m_text_align			= text_align_left;
+		m_el_position			= element_position_static;
+		m_display				= display_inline;
+		m_vertical_align		= va_baseline;
+		m_list_style_type		= list_style_type_none;
+		m_list_style_position	= list_style_position_outside;
+		m_float					= float_none;
+		m_clear					= clear_none;
+		m_font					= 0;
+		m_font_size				= 0;
+		m_white_space			= white_space_normal;
+		m_lh_predefined			= false;
+		m_line_height			= 0;
+		m_visibility			= visibility_visible;
+		m_border_spacing_x		= 0;
+		m_border_spacing_y		= 0;
+		m_border_collapse		= border_collapse_separate;
+		}
 
 		static void register_js_prototype(JSContext* ctx, JSValue prototype);
 
@@ -239,7 +266,7 @@ namespace litehtml
 		int					render_table(int x, int y, int max_width, bool second_pass = false);
 		int					fix_line_width(int max_width, element_float flt);
 		void				parse_background();
-		void				init_background_paint( position pos, background_paint &bg_paint, const background* bg );
+		void				init_background_paint( position pos, background_paint* bg_paint, const background* bg );
 		void				draw_list_marker( uint_ptr hdc, const position &pos );
 		tstring				get_list_marker_text(int index);
 		static void			parse_nth_child_params( const tstring& param, int &num, int &off );

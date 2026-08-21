@@ -53,7 +53,10 @@ namespace litehtml
 		std::shared_ptr<element>			m_root;
 		document_container*					m_container;
 		fonts_map							m_fonts;
-		css_text::vector					m_css;
+		/* crust: written out rather than `css_text::vector`. A class-scoped
+		   typedef is left alone by the lowering, so the field's type never
+		   resolved to a container and `m_css` was not walkable. */
+		std::vector<css_text>					m_css;
 		litehtml::css						m_styles;
 		litehtml::web_color					m_def_color;
 		litehtml::context*					m_context;

@@ -15,7 +15,21 @@ namespace litehtml
 		bool			m_use_transformed;
 		bool			m_draw_spaces;
 	public:
-		el_text(const tchar_t* text, const std::shared_ptr<litehtml::document>& doc);
+		/* crust: defined here rather than out of line in the .cpp. A
+		   constructor that is only declared in this translation is not
+		   registered, so `make_shared` elsewhere found no constructor to
+		   call. A base initializer still resolves against a declared-only
+		   base, so only the classes that get constructed by name need this. */
+		el_text(const tchar_t* text, const std::shared_ptr<litehtml::document>& doc) : element(doc)
+		{
+			if(text)
+			{
+				m_text = text;
+			}
+			m_text_transform	= text_transform_none;
+			m_use_transformed	= false;
+			m_draw_spaces		= true;
+		}
 
 		void				get_text(tstring& text) override;
 		const tchar_t*		get_style_property(const tchar_t* name, bool inherited, const tchar_t* def = nullptr) const override;
