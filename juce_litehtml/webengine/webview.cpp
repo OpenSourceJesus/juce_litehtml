@@ -166,24 +166,24 @@ public:
         sz.height = 0;
     }
 
-    void draw_background (uint_ptr hdc, const background_paint &bg) override
+    void draw_background (uint_ptr hdc, const background_paint *bg) override
     {
         if (auto* g { static_cast<Graphics*> ((void*) hdc) })
         {
-            if (bg.image.empty())
+            if (bg->image.empty())
             {
                 Rectangle<int> rect;
-                rect.setX (bg.position_x + bg.clip_box.left());
-                rect.setY (bg.position_y + bg.clip_box.top());
-                rect.setWidth (bg.clip_box.width);
-                rect.setHeight (bg.clip_box.height);
+                rect.setX (bg->position_x + bg->clip_box.left());
+                rect.setY (bg->position_y + bg->clip_box.top());
+                rect.setWidth (bg->clip_box.width);
+                rect.setHeight (bg->clip_box.height);
 
-                g->setColour (webColour (bg.color));
+                g->setColour (webColour (bg->color));
                 g->fillRect (rect);
             }
             else if (auto* loader { getLoader() })
             {
-                const URL url (juceString (bg.image));
+                const URL url (juceString (bg->image));
                 Image image;
                 const bool ok { loader->loadLocalOrCached<Image> (url, image) };
 
@@ -191,12 +191,12 @@ public:
                 {
                     // @todo handle background paint correctly
                     Rectangle<float> frect;
-                    frect.setLeft (bg.position_x);
-                    frect.setTop (bg.position_y);
-                    frect.setWidth (bg.clip_box.width);
-                    frect.setHeight (bg.clip_box.height);
+                    frect.setLeft (bg->position_x);
+                    frect.setTop (bg->position_y);
+                    frect.setWidth (bg->clip_box.width);
+                    frect.setHeight (bg->clip_box.height);
 
-                    if (bg.repeat == background_repeat_repeat)
+                    if (bg->repeat == background_repeat_repeat)
                         g->drawImage (image, frect, RectanglePlacement::fillDestination);
                     else
                         g->drawImage (image, frect, RectanglePlacement::stretchToFit);

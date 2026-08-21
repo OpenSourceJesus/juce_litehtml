@@ -26,7 +26,7 @@ public:
         // @todo
     }
 
-    void draw_background (uint_ptr, const background_paint&) override {}
+    void draw_background (uint_ptr, const background_paint*) override {}
     void draw_borders (uint_ptr, const borders&, const position&, bool) override {}
     void set_caption (const tchar_t*) override {}
 
