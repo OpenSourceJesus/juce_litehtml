@@ -727,15 +727,16 @@ int litehtml::html_tag::select_element(const css_element_selector& selector, boo
 			{
 				if(attr->attribute == _t("class"))
 				{
-					const string_vector & tokens1 = m_class_values;
-					const string_vector & tokens2 = attr->class_val;
+					/* crust: the reference aliases are gone and both loops are
+					   indexed. A reference local is not lowered to a pointer,
+					   so nothing could name `tokens2` as a container. */
 					bool found = true;
-					for(const auto& str1 : tokens2)
+					for(int t2 = 0; t2 < (int)attr->class_val.size(); t2++)
 					{
 						bool f = false;
-						for(const auto& str2 : tokens1)
+						for(int t1 = 0; t1 < (int)m_class_values.size(); t1++)
 						{
-							if( !t_strcasecmp(str1.c_str(), str2.c_str()) )
+							if( !t_strcasecmp(attr->class_val[t2].c_str(), m_class_values[t1].c_str()) )
 							{
 								f = true;
 							}
@@ -3620,7 +3621,10 @@ std::shared_ptr<litehtml::element> litehtml::html_tag::find_adjacent_sibling( co
 
 std::shared_ptr<litehtml::element> litehtml::html_tag::find_sibling(const std::shared_ptr<litehtml::element>& el, const css_selector& selector, bool apply_pseudo /*= true*/, bool* is_pseudo /*= 0*/)
 {
-	std::shared_ptr<litehtml::element> ret = nullptr;
+	/* crust: default-constructed. A shared_ptr is empty on construction, so
+	   the `= nullptr` was only saying so twice, and it read as a copy from
+	   something the pass could not name. */
+	std::shared_ptr<litehtml::element> ret;
 	for(auto& e : m_children)
 	{
 		if(e->get_display() != display_inline_text)
@@ -3854,7 +3858,10 @@ void litehtml::html_tag::refresh_styles()
 
 std::shared_ptr<litehtml::element> litehtml::html_tag::get_child_by_point(int x, int y, int client_x, int client_y, draw_flag flag, int zindex)
 {
-	std::shared_ptr<litehtml::element> ret = nullptr;
+	/* crust: default-constructed. A shared_ptr is empty on construction, so
+	   the `= nullptr` was only saying so twice, and it read as a copy from
+	   something the pass could not name. */
+	std::shared_ptr<litehtml::element> ret;
 
 	if(m_overflow > overflow_visible)
 	{
@@ -3868,9 +3875,11 @@ std::shared_ptr<litehtml::element> litehtml::html_tag::get_child_by_point(int x,
 	pos.x	= x - pos.x;
 	pos.y	= y - pos.y;
 
-	for(auto i = m_children.rbegin(); i != m_children.rend() && !ret; i++)
+	/* crust: a downward index loop rather than a reverse iterator --
+	   iterators are not in the subset and `*i` is not a name. */
+	for(int ci = (int)m_children.size() - 1; ci >= 0 && !ret; ci--)
 	{
-		std::shared_ptr<litehtml::element> el = (*i);
+		std::shared_ptr<litehtml::element> el = m_children[ci];
 
 		if(el->is_visible() && el->get_display() != display_inline_text)
 		{
@@ -3882,16 +3891,16 @@ std::shared_ptr<litehtml::element> litehtml::html_tag::get_child_by_point(int x,
 					if(el->get_element_position() == element_position_fixed)
 					{
 						ret = el->get_element_by_point(client_x, client_y, client_x, client_y);
-						if(!ret && (*i)->is_point_inside(client_x, client_y))
+						if(!ret && m_children[ci]->is_point_inside(client_x, client_y))
 						{
-							ret = (*i);
+							ret = m_children[ci];
 						}
 					} else
 					{
 						ret = el->get_element_by_point(pos.x, pos.y, client_x, client_y);
-						if(!ret && (*i)->is_point_inside(pos.x, pos.y))
+						if(!ret && m_children[ci]->is_point_inside(pos.x, pos.y))
 						{
-							ret = (*i);
+							ret = m_children[ci];
 						}
 					}
 					el = nullptr;
@@ -3911,9 +3920,9 @@ std::shared_ptr<litehtml::element> litehtml::html_tag::get_child_by_point(int x,
 				{
 					ret = el->get_element_by_point(pos.x, pos.y, client_x, client_y);
 
-					if(!ret && (*i)->is_point_inside(pos.x, pos.y))
+					if(!ret && m_children[ci]->is_point_inside(pos.x, pos.y))
 					{
-						ret = (*i);
+						ret = m_children[ci];
 					}
 					el = nullptr;
 				}
@@ -3926,9 +3935,9 @@ std::shared_ptr<litehtml::element> litehtml::html_tag::get_child_by_point(int x,
 						ret = el->get_element_by_point(pos.x, pos.y, client_x, client_y);
 						el = nullptr;
 					}
-					if(!ret && (*i)->is_point_inside(pos.x, pos.y))
+					if(!ret && m_children[ci]->is_point_inside(pos.x, pos.y))
 					{
-						ret = (*i);
+						ret = m_children[ci];
 					}
 				}
 				break;
