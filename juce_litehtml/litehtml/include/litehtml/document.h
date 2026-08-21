@@ -87,7 +87,9 @@ namespace litehtml
 		int								render(int max_width, render_type rt = render_all);
 		void							draw(uint_ptr hdc, int x, int y, const position* clip);
 		web_color						get_def_color()	{ return m_def_color; }
-		int								cvt_units(const tchar_t* str, int fontSize, bool* is_percent = nullptr) const;
+		/* crust: renamed from `cvt_units`. Overloads resolve by argument
+		   count, and this took three like the css_length one below. */
+		int								cvt_units_str(const tchar_t* str, int fontSize, bool* is_percent = nullptr) const;
 		int								cvt_units(css_length& val, int fontSize, int size = 0) const;
 		int								width() const;
 		int								height() const;
@@ -110,6 +112,12 @@ namespace litehtml
 		void                            append_children_from_string(element& parent, const tchar_t* str);
 		void                            append_children_from_utf8(element& parent, const char* str);
 
+		/* crust: `new el_text` from the file-scope JS callbacks was refused --
+		   the class has to be one the lowering knows in the calling context,
+		   and a qualified litehtml::el_text outside any litehtml member did
+		   not resolve. Constructing it in a member instead is the shape that
+		   already works everywhere else in the tree. */
+		std::shared_ptr<litehtml::element>	create_text_node(const tchar_t* text);
 		void							stash_element(std::shared_ptr<litehtml::element> el);
 		void							remove_from_stash(std::shared_ptr<litehtml::element> el);
 

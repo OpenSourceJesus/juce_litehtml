@@ -9,7 +9,13 @@ namespace litehtml
 	{
 		tstring	m_text;
 	public:
-		explicit el_cdata(const std::shared_ptr<litehtml::document>& doc);
+		/* crust: defined inline. A constructor only declared in a
+		   translation is not registered, and the base initializer has to be
+		   visible where the class is defined. */
+		explicit el_cdata(const std::shared_ptr<litehtml::document>& doc) : litehtml::element(doc)
+		{
+		m_skip = true;
+		}
 
 		void get_text(tstring& text) override;
 		void set_data(const tchar_t* data) override;

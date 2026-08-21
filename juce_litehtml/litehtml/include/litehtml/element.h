@@ -134,10 +134,14 @@ namespace litehtml
 
 		std::shared_ptr<litehtml::element>				get_parent() const;
 
-		virtual elements_vector		select_all(const tstring& selector);
+		/* crust: renamed from `select_all`. Overloads resolve by argument
+		   count, and this took one like the css_selector one. */
+		virtual elements_vector		select_all_str(const tstring& selector);
 		virtual elements_vector		select_all(const css_selector& selector);
 
-		virtual std::shared_ptr<litehtml::element>		select_one(const tstring& selector);
+		/* crust: renamed from `select_one`. Overloads resolve by argument
+		   count, and this took one like the css_selector one. */
+		virtual std::shared_ptr<litehtml::element>		select_one_str(const tstring& selector);
 		virtual std::shared_ptr<litehtml::element>		select_one(const css_selector& selector);
 
 		virtual int					render(int x, int y, int max_width, bool second_pass = false);
@@ -209,7 +213,9 @@ namespace litehtml
 		virtual void				get_text(tstring& text);
 		virtual void				parse_attributes();
 		virtual int					select(const css_selector& selector, bool apply_pseudo = true);
-		virtual int					select(const css_element_selector& selector, bool apply_pseudo = true);
+		/* crust: renamed from `select`. Overloads resolve by argument count,
+		   and this took two like the css_selector one above. */
+		virtual int					select_element(const css_element_selector& selector, bool apply_pseudo = true);
 		virtual std::shared_ptr<litehtml::element>		find_ancestor(const css_selector& selector, bool apply_pseudo = true, bool* is_pseudo = nullptr);
 		virtual bool				is_ancestor(const ptr &el) const;
 		virtual std::shared_ptr<litehtml::element>		find_adjacent_sibling(const std::shared_ptr<litehtml::element>& el, const css_selector& selector, bool apply_pseudo = true, bool* is_pseudo = nullptr);

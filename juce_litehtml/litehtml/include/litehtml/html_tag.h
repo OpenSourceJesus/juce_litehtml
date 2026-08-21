@@ -213,12 +213,18 @@ namespace litehtml
 		void				calc_auto_margins(int parent_width) override;
 
 		int					select(const css_selector& selector, bool apply_pseudo = true) override;
-		int					select(const css_element_selector& selector, bool apply_pseudo = true) override;
+		/* crust: renamed from `select`. Overloads resolve by argument count,
+		   and this took two like the css_selector one above. */
+		int					select_element(const css_element_selector& selector, bool apply_pseudo = true) override;
 
-		elements_vector		select_all(const tstring& selector) override;
+		/* crust: renamed from `select_all`. Overloads resolve by argument
+		   count, and this took one like the css_selector one. */
+		elements_vector		select_all_str(const tstring& selector) override;
 		elements_vector		select_all(const css_selector& selector) override;
 
-		std::shared_ptr<litehtml::element>		select_one(const tstring& selector) override;
+		/* crust: renamed from `select_one`. Overloads resolve by argument
+		   count, and this took one like the css_selector one. */
+		std::shared_ptr<litehtml::element>		select_one_str(const tstring& selector) override;
 		std::shared_ptr<litehtml::element>		select_one(const css_selector& selector) override;
 
 		std::shared_ptr<litehtml::element>		find_ancestor(const css_selector& selector, bool apply_pseudo = true, bool* is_pseudo = nullptr) override;

@@ -9,7 +9,12 @@ namespace litehtml
 	{
 		tstring m_text;
 	public:
-		explicit el_script(const std::shared_ptr<litehtml::document>& doc);
+		/* crust: defined inline. A constructor only declared in a
+		   translation is not registered, and the base initializer has to be
+		   visible where the class is defined. */
+		explicit el_script(const std::shared_ptr<litehtml::document>& doc) : litehtml::element(doc)
+		{
+		}
 
 		void parse_attributes() override;
 		bool appendChild(const ptr &el) override;

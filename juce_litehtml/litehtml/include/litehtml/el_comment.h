@@ -9,7 +9,13 @@ namespace litehtml
 	{
 		tstring	m_text;
 	public:
-		explicit el_comment(const std::shared_ptr<litehtml::document>& doc);
+		/* crust: defined inline. A constructor only declared in a
+		   translation is not registered, and the base initializer has to be
+		   visible where the class is defined. */
+		explicit el_comment(const std::shared_ptr<litehtml::document>& doc) : litehtml::element(doc)
+		{
+		m_skip = true;
+		}
 
 		bool is_comment() const override;
 		void get_text(tstring& text) override;
