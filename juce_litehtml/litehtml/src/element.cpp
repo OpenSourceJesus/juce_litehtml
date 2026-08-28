@@ -39,7 +39,7 @@ litehtml::element_js_object_ref::~element_js_object_ref()
 
 litehtml::element::~element()
 {
-	if (m_jsValue == JS_UNINITIALIZED || m_jsContext == nullptr)
+	if (JS_IsUninitialized(m_jsValue) || m_jsContext == nullptr)
 		return;
 
 	JS_FreeValue (m_jsContext, m_jsValue);

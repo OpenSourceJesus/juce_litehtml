@@ -4,6 +4,7 @@
 
 #include "quickjs.h"
 #include "quickjs-libc.h"
+#include "quickjs-version.h"
 
 #include "../headless/crust_compat.h"
 #include "../headless/js_prelude.h"
@@ -341,7 +342,8 @@ int main (int argc, char** argv)
     }
 
     js_std_init_handlers (rt);
-    JS_SetModuleLoaderFunc (rt, 0, js_module_loader, 0);
+    /* quickjs-ng: module loader takes import attributes; use Func2. */
+    JS_SetModuleLoaderFunc2 (rt, 0, js_module_loader, js_module_check_attributes, 0);
 
     JSContext* ctx = JS_NewContext (rt);
 

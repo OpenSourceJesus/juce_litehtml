@@ -52,7 +52,7 @@ void litehtml::document_js_finalize(JSRuntime*, JSValue val)
 
 litehtml::document::~document()
 {
-	if (m_jsValue != JS_UNINITIALIZED)
+	if (!JS_IsUninitialized(m_jsValue))
 		JS_FreeValue (m_context->js_context(), m_jsValue);
 
 	m_over_element = nullptr;

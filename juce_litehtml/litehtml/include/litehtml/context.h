@@ -32,7 +32,7 @@ namespace litehtml
 		void js_register_class(const char* className, JSClassFinalizer* finalizer)
 		{
 			if (T::jsClassID == 0)
-				JS_NewClassID (&T::jsClassID);
+				JS_NewClassID (m_jsRuntime, &T::jsClassID);
 
 			if (!JS_IsRegisteredClass(m_jsRuntime, T::jsClassID))
 			{
@@ -60,9 +60,11 @@ namespace litehtml
 		template<class T, class RefT>
 		static RefT* js_get_object_ref(JSValue obj)
 		{
-			void* opaque { nullptr };
-			const JSClassID classID { JS_GetClassID(obj, &opaque) };
-			
+			/* quickjs-ng: JS_GetClassID no longer returns the opaque; fetch
+			   it separately with JS_GetOpaque. */
+			const JSClassID classID { JS_GetClassID(obj) };
+			void* opaque { JS_GetOpaque(obj, T::jsClassID) };
+
 			if (classID == T::jsClassID && opaque != nullptr)
 				return static_cast<RefT*>(opaque);
 

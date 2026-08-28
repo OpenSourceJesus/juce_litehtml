@@ -83,11 +83,10 @@ def litehtml_sources():
 
 def quickjs_sources():
     srcs = sorted(QUICKJS.glob("*.c"))
-    # quickjs-bjson is an optional binary-JSON module nothing here uses.
-    # quickjs-libc is compiled in: the renderer does not touch it, but it is
-    # what gives mininodejs console.log and the std and os modules.
-    skip = {"quickjs-bjson.c"}
-    return [s for s in srcs if s.name not in skip]
+    # quickjs-ng library units. Skip nothing by default; libc is compiled in
+    # so mininodejs keeps console.log / std / os. Builtin *.h files are
+    # #included from quickjs.c and are not separate translation units.
+    return list(srcs)
 
 
 ENGINE_INCLUDES = [
@@ -101,9 +100,9 @@ ENGINE_INCLUDES = [
 
 ENGINE_DEFINES = [
     "LITEHTML_UTF8=1",
-    "JS_STRICT_NAN_BOXING=1",
-    "CONFIG_BIGNUM=1",
-    "CONFIG_JSX=1",
+    # quickjs-ng: BigInt and nan-boxing are defaults; JSX was dropped.
+    # QJS_BUILD_LIBC folds quickjs-libc into the same library.
+    "QJS_BUILD_LIBC=1",
     "_GNU_SOURCE",
 ]
 
