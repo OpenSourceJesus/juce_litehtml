@@ -27,4 +27,14 @@ private:
     litehtml::tstring script;
 };
 
+/** Evaluates every <script> in a document, in document order.
+
+    litehtml collects script text but never runs it; this is the caller
+    js_eval never had. Errors are reported to stderr and do not stop the
+    remaining scripts, which is what a browser does and what makes a page
+    with one broken script still usable.
+ */
+void runDocumentScripts (const litehtml::document::ptr& doc,
+                         litehtml::context* ctx);
+
 } // namespace headless
