@@ -1,6 +1,7 @@
 # mininodejs
 
-A small node-like runner over the same quickjs the browser links.
+A small node-like runner over the same [quickjs-ng](https://github.com/quickjs-ng/quickjs)
+the browser links (vendored at 0.16.x).
 
 ```sh
 ./build.py mininodejs
@@ -36,7 +37,8 @@ script appear in `process.argv`.
 
 Module or script is guessed from the syntax when not forced, since quickjs has
 to be told which before parsing and guessing wrong turns a valid file into a
-syntax error.
+syntax error. Top-level await needs module mode (`-m` or a source that looks
+like a module).
 
 `--check` is the useful one for engine work: it compiles without running, so a
 parser gap can be told apart from a runtime one without side effects.
@@ -71,83 +73,9 @@ which sorts failures into four kinds:
   worst kind and worth chasing first
 - **supported**
 
-Only the `EXPECTED_SUPPORTED` list is enforced. Something on it breaking is a
-failure; an unimplemented feature is a row in a table, not an error. That way
-the matrix can describe the engine honestly without the suite going red over
-work not yet done.
-
-## The prelude
-
-`headless/js_prelude.h` defines the standard library functions this quickjs
-predates: `Array.prototype.at`, `String.prototype.at`, `findLast`,
-`findLastIndex`, `Object.hasOwn` and `structuredClone`.
-
-They live in JavaScript because that is all they are -- quickjs parses every
-one of them fine, the functions simply do not exist, and a C implementation
-would be more code for the same result. They live in `headless/` rather than
-here because the browser's script context needs the same additions: a page
-using `Array.at` should not behave differently from a snippet using it.
-
-Every definition is guarded with an `in` check, so rebasing onto a quickjs
-that implements them natively silently stops using the prelude rather than
-overwriting better implementations.
-
-`structuredClone` handles plain objects, arrays, `Map`, `Set`, `Date`,
-`RegExp`, `ArrayBuffer` and typed arrays, preserves cycles, and throws on a
-function as the real one does. It is not the full algorithm -- there is no
-transfer list.
-
-## Top-level await: why it is not a small patch
-
-Worth writing down, because it looks like a two-line change and is not.
-
-`await` at a module's top level is rejected by two guards, and both come off
-easily. Compiling the module body as an async function (`fd->func_kind =
-JS_FUNC_ASYNC`) satisfies the first, and setting `fd->in_function_body`
-satisfies the second -- the latter is correct in principle, since that flag
-exists only to stop `await` appearing while an async function's *argument
-defaults* are parsed, and a module has no argument list.
-
-With both changed the module parses and runs to its first `await`. Then it
-stops. No job is queued, the runtime asserts on shutdown with objects still
-live, and the value the evaluation returns is neither a promise nor
-`undefined` but an internal sentinel.
-
-The reason is that `js_evaluate_module` calls the module's function object
-directly. An async function is only driven correctly when its call goes
-through `js_async_function_call`, which the class dispatch table wires up for
-`JS_CLASS_ASYNC_FUNCTION` objects -- and the module's function object is not
-one. So the interpreter reaches `OP_await`, returns its internal "I have
-suspended" value to a caller that has no idea what to do with it, and the
-suspended state is dropped on the floor.
-
-Making this work means driving the module through the async machinery, and
-then dealing with what that implies: a module that suspends has not finished
-when `js_evaluate_module` returns, so every module that imports it has to wait
-for it, which is the async module graph the specification describes. That is a
-real feature, not a patch.
-
-**The recommendation is to rebase quickjs rather than implement this.**
-Upstream added top-level await in 2023, along with static class blocks -- the
-other parser gap here -- so a rebase closes both, and the prelude above
-disappears with them. The vendored copy is from March 2021.
-
 ## Where it stands
 
-quickjs 2021-03-27 plus the prelude, at the time of writing: **59 of 61
-supported, nothing missing a built-in, 0 wrong results.**
-
-ES2015 through ES2020 are essentially complete, including classes, generators,
-async/await, async iteration, Proxy/Reflect, BigInt, optional chaining,
-nullish coalescing, named capture groups and lookbehind.
-
-What remains missing is the two parser gaps, and only those:
-
-| Gap | Kind |
-|---|---|
-| static class blocks | parser |
-| top-level await | parser |
-
-Both are real engine work rather than additions, and both are implemented
-upstream. Top-level await is the one that matters, since a bundler targeting
-modern browsers will emit it.
+quickjs-ng 0.16.x: **61 of 61 supported** on the feature matrix, including
+static class blocks, private fields, BigInt, and top-level await (as an ES
+module). The March 2021 Bellard snapshot this replaced left those two parser
+gaps open; the rebase closed them.
