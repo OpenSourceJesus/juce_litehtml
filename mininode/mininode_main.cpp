@@ -7,6 +7,9 @@
 
 #include "../headless/crust_compat.h"
 #include "../headless/js_prelude.h"
+#ifdef HEADLESS_WASM
+#include "wasm_js.h"
+#endif
 
 // A small node-like runner over the quickjs the browser already vendors.
 //
@@ -69,6 +72,13 @@ static void installGlobals (JSContext* ctx, const char* scriptName,
                             int argc, char** argv)
 {
     JSValue global = JS_GetGlobalObject (ctx);
+
+#ifdef HEADLESS_WASM
+    // WebAssembly modules compiled into this binary ahead of time. Present
+    // only when the build bundled some; a build without them has no
+    // WebAssembly object at all, which is what a page should feature-detect.
+    headless::installWasmBindings (ctx, global);
+#endif
 
     // console.log and print come from quickjs-libc; the rest do not.
     JSValue console = JS_GetPropertyStr (ctx, global, "console");
