@@ -27,6 +27,10 @@ be lowered to C by [Crust](https://github.com/brentharts/crust).
 | `gtk` | Windowed browser: links, history, decoded images | gtk3 |
 | `mininodejs` | Node-like JavaScript runner over quickjs | nothing |
 
+WebAssembly modules in `wasm/modules/` are translated to C at build time by
+Crust and linked in; see [wasm/README.md](wasm/README.md). Absent Crust the
+build simply omits them.
+
 All of them share one container hierarchy and one loader. A front end overrides
 the font metrics and the paint calls; everything else — image sizing,
 stylesheet and script loading, media features, link collection — is inherited.
@@ -78,6 +82,7 @@ failing to link.
 ./test_gtk.py         # 10 checks on the GTK front end, no display needed
 ./test_mininodejs.py  # JS runner tests, plus an ES feature matrix
 ./check_crust.py      # scans our own sources for constructs Crust refuses
+./test_wasm.py        # 12 checks on the ahead-of-time WebAssembly path
 ```
 
 All of them are self-contained. `run_tests.py` embeds both the documents under

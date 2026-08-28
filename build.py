@@ -108,6 +108,47 @@ ENGINE_DEFINES = [
 ]
 
 
+WASM_MODULES = ROOT / "wasm" / "modules"
+
+
+def wasm_aot_includes() -> list:
+    """Crust's wasm2c runtime headers, which the generated C includes."""
+    crust_tools = ROOT.parent / "crust" / "tools"
+    return [crust_tools] if (crust_tools / "wasm2c_rt.h").is_file() else []
+
+
+def wasm_aot_defines() -> list:
+    """HEADLESS_WASM when at least one module is bundled, so the bindings can
+    say so and the tests can tell whether to expect them."""
+    if not WASM_MODULES.is_dir():
+        return []
+    if not sorted(WASM_MODULES.glob("*.wasm")):
+        return []
+    return ["HEADLESS_WASM"] if wasm_aot_includes() else []
+
+
+def wasm_aot_sources(build_dir: Path) -> list:
+    """Translate bundled `.wasm` modules to C and return the sources.
+
+    Runs at build time, so the browser needs no compiler and translates
+    nothing while a page is open. Silently produces nothing when there are no
+    modules or when crust is absent -- wasm is an optional capability, exactly
+    like cairo or TLS, and its absence must not stop the build.
+    """
+    sys.path.insert(0, str(ROOT / "tools"))
+    try:
+        import wasm_aot
+    except ImportError:
+        return []
+    if not wasm_aot.crust_available():
+        return []
+    try:
+        return wasm_aot.translate_all(WASM_MODULES, build_dir / "wasm-aot")
+    except SystemExit as e:
+        print("  [wasm] %s" % e)
+        return []
+
+
 def make_headless_target() -> Target:
     tls_defines, tls_pkgs = tls_config()
     return Target(
@@ -118,9 +159,11 @@ def make_headless_target() -> Target:
             litehtml_sources()
             + quickjs_sources()
             + sorted((ROOT / "headless").glob("*.cpp"))
+            + wasm_aot_sources(BUILD / "headless")
         ),
-        include_dirs=ENGINE_INCLUDES + [ROOT / "headless"],
-        defines=ENGINE_DEFINES + tls_defines,
+        include_dirs=(ENGINE_INCLUDES + [ROOT / "headless"]
+                      + wasm_aot_includes()),
+        defines=ENGINE_DEFINES + tls_defines + wasm_aot_defines(),
         # GCC 13 turned -Wchanges-meaning into an error; litehtml's element.h
         # trips it. Suppressing beats patching vendored code.
         cxx_flags=["-std=c++17", "-Wno-changes-meaning"],
@@ -220,9 +263,13 @@ def make_mininode_target() -> Target:
         name="mininodejs",
         description="Headless JavaScript runner over quickjs (no litehtml)",
         binary="mininodejs",
-        sources=quickjs_sources() + sorted((ROOT / "mininode").glob("*.cpp")),
-        include_dirs=[QUICKJS, ROOT / "headless"],
-        defines=list(ENGINE_DEFINES),
+        sources=(quickjs_sources()
+                 + sorted((ROOT / "mininode").glob("*.cpp"))
+                 + [ROOT / "headless" / "wasm_registry.cpp",
+                    ROOT / "headless" / "wasm_js.cpp"]
+                 + wasm_aot_sources(BUILD / "mininodejs")),
+        include_dirs=[QUICKJS, ROOT / "headless"] + wasm_aot_includes(),
+        defines=list(ENGINE_DEFINES) + wasm_aot_defines(),
         cxx_flags=["-std=c++17"],
         c_flags=["-std=c11", "-Wno-unused-result"],
         link_flags=["-lm", "-lpthread", "-ldl"],
