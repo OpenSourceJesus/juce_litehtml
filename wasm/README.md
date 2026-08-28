@@ -53,10 +53,16 @@ runtime toolchain, no startup cost, and no temporary files.
 
 ## Optional, like everything else
 
-Absent Crust beside the repository, `wasm_aot.py` produces nothing, the build
-omits `HEADLESS_WASM`, and there is no `WebAssembly` object at all. The build
-still succeeds and `test_wasm.py` skips. This is the same shape as cairo and
-TLS.
+Absent a Crust tree with `tools/wasm2c.py` beside the repository, `wasm_aot.py`
+produces nothing, the build omits `HEADLESS_WASM`, and there is no
+`WebAssembly` object at all. The build still succeeds and `test_wasm.py`
+skips. This is the same shape as cairo and TLS.
+
+`build.py` looks for Crust at `$CRUST_DIR`, then `../crust`, then
+`../crust-brentharts`. Clone [brentharts/crust](https://github.com/brentharts/crust)
+to one of those paths (the OpenSourceJesus fork does not include the wasm
+tooling). Sources under `wasm/src/` are compiled to `wasm/modules/*.wasm`
+automatically before translation.
 
 ## Running page scripts
 

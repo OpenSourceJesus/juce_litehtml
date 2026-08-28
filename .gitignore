@@ -30,3 +30,6 @@
 *.exe
 *.out
 *.app
+
+# Ahead-of-time wasm modules (built from wasm/src/ by build.py)
+wasm/modules/*.wasm

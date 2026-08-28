@@ -110,39 +110,53 @@ ENGINE_DEFINES = [
 WASM_MODULES = ROOT / "wasm" / "modules"
 
 
+def _wasm_aot():
+    """Import tools/wasm_aot.py, or None when it is missing."""
+    sys.path.insert(0, str(ROOT / "tools"))
+    try:
+        import wasm_aot
+    except ImportError:
+        return None
+    return wasm_aot
+
+
 def wasm_aot_includes() -> list:
     """Crust's wasm2c runtime headers, which the generated C includes."""
-    crust_tools = ROOT.parent / "crust" / "tools"
-    return [crust_tools] if (crust_tools / "wasm2c_rt.h").is_file() else []
+    mod = _wasm_aot()
+    if mod is None or not mod.crust_available():
+        return []
+    return [mod.crust_dir() / "tools"]
 
 
 def wasm_aot_defines() -> list:
     """HEADLESS_WASM when at least one module is bundled, so the bindings can
     say so and the tests can tell whether to expect them."""
+    mod = _wasm_aot()
+    if mod is None or not mod.crust_available():
+        return []
+    # Compile first so a checkout with only wasm/src still enables the flag,
+    # regardless of whether sources= or defines= is evaluated first.
+    mod.compile_c_modules(ROOT / "wasm" / "src", WASM_MODULES)
     if not WASM_MODULES.is_dir():
         return []
     if not sorted(WASM_MODULES.glob("*.wasm")):
         return []
-    return ["HEADLESS_WASM"] if wasm_aot_includes() else []
+    return ["HEADLESS_WASM"]
 
 
 def wasm_aot_sources(build_dir: Path) -> list:
-    """Translate bundled `.wasm` modules to C and return the sources.
+    """Compile `wasm/src`, translate bundled `.wasm` modules, return sources.
 
     Runs at build time, so the browser needs no compiler and translates
-    nothing while a page is open. Silently produces nothing when there are no
-    modules or when crust is absent -- wasm is an optional capability, exactly
-    like cairo or TLS, and its absence must not stop the build.
+    nothing while a page is open. Silently produces nothing when crust is
+    absent -- wasm is an optional capability, exactly like cairo or TLS,
+    and its absence must not stop the build.
     """
-    sys.path.insert(0, str(ROOT / "tools"))
-    try:
-        import wasm_aot
-    except ImportError:
-        return []
-    if not wasm_aot.crust_available():
+    mod = _wasm_aot()
+    if mod is None or not mod.crust_available():
         return []
     try:
-        return wasm_aot.translate_all(WASM_MODULES, build_dir / "wasm-aot")
+        return mod.translate_all(WASM_MODULES, build_dir / "wasm-aot")
     except SystemExit as e:
         print("  [wasm] %s" % e)
         return []
