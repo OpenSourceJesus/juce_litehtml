@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "container.h"
+#include "el_script.h"
 #include "context.h"
 #include "crust_compat.h"
 #include "dump.h"
@@ -27,6 +28,7 @@ static void printUsage (const char* argv0)
     printf ("                         stats  summary counters only\n");
     printf ("                         all    every mode above, with headings\n");
     printf ("  -b, --base DIR       Base directory for relative css/script urls\n");
+    printf ("      --js             Execute <script> elements after layout\n");
     printf ("      --font-name NAME Default font family (default sans-serif)\n");
     printf ("      --font-size N    Default font size in pixels (default 16)\n");
     printf ("      --image-size WxH Size reported for images (default 0x0)\n");
@@ -114,6 +116,7 @@ int main (int argc, char** argv)
     int fontSize = 16;
 
     std::string mode;
+    int runScripts = 0;
     std::string baseDir;
     std::string fontName;
     std::string inputPath;
@@ -133,6 +136,10 @@ int main (int argc, char** argv)
         {
             printUsage (argv[0]);
             return 0;
+        }
+        else if (strcmp (arg, "--js") == 0)
+        {
+            runScripts = 1;
         }
         else if (strcmp (arg, "-w") == 0 || strcmp (arg, "--width") == 0)
         {
@@ -290,6 +297,21 @@ int main (int argc, char** argv)
     }
 
     doc->render (width);
+
+    /*  Scripts run only when asked for.
+
+        litehtml parses <script> elements and stores their text, but nothing
+        in this build ever evaluated it -- js_eval existed and had no caller.
+        Running scripts by default would change the output of every document
+        that has one, so it is opt-in: the golden suite stays byte-identical,
+        and a page that wants JavaScript says so.
+
+        Layout happens first, so a script sees a document that has already
+        been laid out. Re-layout after a script mutates the DOM is a separate
+        problem and is not attempted here.
+     */
+    if (runScripts != 0)
+        headless::runDocumentScripts (doc, &context);
 
     litehtml::position clip;
     clip.x = 0;
