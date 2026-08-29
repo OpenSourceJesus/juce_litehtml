@@ -74,7 +74,17 @@ namespace litehtml
 		std::vector<std::shared_ptr<litehtml::element>> m_stashed_elements;
 
 	public:
-		document(litehtml::document_container* objContainer, litehtml::context* ctx);
+		/* crust: defined inline. A constructor that is only declared in this
+		   translation is not registered, so `make_shared<document>(..)` finds
+		   no constructor to call. See html_tag.h. */
+		document(litehtml::document_container* objContainer, litehtml::context* ctx)
+		{
+			m_container	= objContainer;
+			m_context	= ctx;
+
+			m_jsValue   = JS_NewObjectClass(ctx->js_context(), jsClassID);
+			JS_SetOpaque (m_jsValue, new litehtml::document_js_object_ref(this));
+		}
 		virtual ~document();
 
 		litehtml::document_container*	container()	{ return m_container; }

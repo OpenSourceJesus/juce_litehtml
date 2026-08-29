@@ -48,25 +48,20 @@ void litehtml::document_js_finalize(JSRuntime*, JSValue val)
 	}
 }
 
-litehtml::document::document(litehtml::document_container* objContainer, litehtml::context* ctx)
-{
-	m_container	= objContainer;
-	m_context	= ctx;
-
-	m_jsValue   = JS_NewObjectClass(ctx->js_context(), jsClassID);
-	JS_SetOpaque (m_jsValue, new litehtml::document_js_object_ref(this));
-}
+/* crust: the constructor is defined inline in document.h. */
 
 litehtml::document::~document()
 {
-	if (m_jsValue != JS_UNINITIALIZED)
+	if (!JS_IsUninitialized(m_jsValue))
 		JS_FreeValue (m_context->js_context(), m_jsValue);
 
 	m_over_element = nullptr;
 
 	if(m_container)
 	{
-		for(auto & m_font : m_fonts)
+		/* crust: spelled element type -- `auto` cannot deduce from a map
+		   range, and the subset walks maps as `pair<K,V> *`. */
+		for(const std::pair<tstring, font_item>& m_font : m_fonts)
 		{
 			m_container->delete_font(m_font.second.font);
 		}
@@ -163,7 +158,12 @@ static JSValue js_getElementById(JSContext* ctx, JSValueConst self, int argc, JS
 			litehtml::tstring id_sel;
 			id_sel.push_back(_t('#'));
 			id_sel.append(id_arg);
-			element = document->root()->select_one_str(id_sel);
+			/* crust: root() is a call result; virtual select_one_str needs a
+			   named receiver, and the owning return has to land on a typed
+			   local before the assignment. */
+			std::shared_ptr<litehtml::element> root_el = document->root();
+			std::shared_ptr<litehtml::element> found = root_el->select_one_str(id_sel);
+			element = found;
 		}
 
 		JS_FreeCString(ctx, id_arg);
@@ -210,7 +210,10 @@ std::shared_ptr<litehtml::document> litehtml::document::createFromUTF8(const cha
 	// Let's process created elements tree
 	if (doc->m_root)
 	{
-		doc->container()->get_media_features(doc->m_media);
+		/* crust: container() is a call result; virtual dispatch needs a
+		   named receiver so the helper evaluates it once. */
+		document_container* cont = doc->container();
+		cont->get_media_features(doc->m_media);
 
 		doc->m_root->set_pseudo_class(_t("root"), true);
 
@@ -280,7 +283,9 @@ litehtml::uint_ptr litehtml::document::add_font( const tchar_t* name, int size, 
 
 	if(!size)
 	{
-		size = container()->get_default_font_size();
+		/* crust: named receiver; see media_changed. */
+		document_container* cont = container();
+		size = cont->get_default_font_size();
 	}
 
 	tchar_t strSize[20];
@@ -740,7 +745,9 @@ void litehtml::document::add_fixed_box( const position& pos )
 
 bool litehtml::document::media_changed()
 {
-	container()->get_media_features(m_media);
+	/* crust: named receiver; see create_node above. */
+	document_container* cont = container();
+	cont->get_media_features(m_media);
 	if (update_media_lists(m_media))
 	{
 		m_root->refresh_styles();
@@ -755,10 +762,15 @@ bool litehtml::document::lang_changed()
 	if(!m_media_lists.empty())
 	{
 		tstring culture;
-		container()->get_language(m_lang, culture);
+		/* crust: named receiver; see media_changed. */
+		document_container* cont = container();
+		cont->get_language(m_lang, culture);
 		if(!culture.empty())
 		{
-			m_culture = m_lang + _t('-') + culture;
+			/* crust: string `operator+` is not in the subset; append. */
+			m_culture = m_lang;
+			m_culture.push_back(_t('-'));
+			m_culture.append(culture.c_str());
 		}
 		else
 		{
@@ -788,7 +800,18 @@ void litehtml::document::add_media_list( const std::shared_ptr<media_query_list>
 {
 	if(list)
 	{
-		if(std::find(m_media_lists.begin(), m_media_lists.end(), list) == m_media_lists.end())
+		/* crust: indexed membership test -- `std::find` is a function
+		   template and needs an explicit `<T>` the call does not have. */
+		bool found = false;
+		for (int i = 0; i < (int)m_media_lists.size(); i++)
+		{
+			if (m_media_lists[i] == list)
+			{
+				found = true;
+				break;
+			}
+		}
+		if(!found)
 		{
 			m_media_lists.push_back(list);
 		}
@@ -967,7 +990,11 @@ void litehtml::document::fix_tables_layout()
 std::shared_ptr<litehtml::element> litehtml::document::make_anonymous_wrapper(std::shared_ptr<litehtml::element>& el_ptr, const tchar_t* disp_str, elements_vector& items)
 {
 	std::shared_ptr<litehtml::element> annon_tag = std::make_shared<html_tag>(shared_from_this());
-	annon_tag->add_style(tstring(_t("display:")) + disp_str, _t(""));
+	/* crust: string `operator+` is not in the subset; append. */
+	tstring annon_style;
+	annon_style.append(_t("display:"));
+	annon_style.append(disp_str);
+	annon_tag->add_style(annon_style, _t(""));
 	annon_tag->parent(el_ptr);
 	annon_tag->parse_styles();
 	for (int ti = 0; ti < (int)items.size(); ti++)
@@ -1085,7 +1112,11 @@ void litehtml::document::fix_table_parent(std::shared_ptr<litehtml::element>& el
 
 			// extract elements with the same display and wrap them with anonymous object
 			std::shared_ptr<litehtml::element> annon_tag = std::make_shared<html_tag>(shared_from_this());
-			annon_tag->add_style(tstring(_t("display:")) + disp_str, _t(""));
+			/* crust: string `operator+` is not in the subset; append. */
+			tstring annon_style;
+			annon_style.append(_t("display:"));
+			annon_style.append(disp_str);
+			annon_tag->add_style(annon_style, _t(""));
 			annon_tag->parent(parent);
 			annon_tag->parse_styles();
 			for (int ai = first; ai <= last; ai++)
@@ -1106,7 +1137,9 @@ void litehtml::document::append_children_from_string(element& parent, const tcha
 void litehtml::document::append_children_from_utf8(element& parent, const char* str)
 {
 	// parent must belong to this document
-	if (parent.get_document().get() != this)
+	/* crust: get_document() returns by value; bind it before .get(). */
+	std::shared_ptr<litehtml::document> parent_doc = parent.get_document();
+	if (parent_doc.get() != this)
 	{
 		return;
 	}

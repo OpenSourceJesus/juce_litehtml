@@ -125,12 +125,21 @@ bool litehtml::css::parse_selectors( const tstring& txt, const tstring& styles, 
 
 void litehtml::css::sort_selectors()
 {
-	std::sort(m_selectors.begin(), m_selectors.end(),
-		 [](const std::shared_ptr<css_selector>& v1, const std::shared_ptr<css_selector>& v2)
-		 {
-			 return (*v1) < (*v2);
-		 }
-	);
+	/* crust: insertion sort. `std::sort` with a lambda is outside the
+	   subset, and the free `sort` template needs an explicit `<T>` plus
+	   `__cpp_cmp` rather than the free `operator<` on css_selector. Same
+	   ascending order as before. */
+	for (int i = 1; i < (int)m_selectors.size(); i++)
+	{
+		std::shared_ptr<css_selector> key = m_selectors[i];
+		int j = i - 1;
+		while (j >= 0 && key < m_selectors[j])
+		{
+			m_selectors[j + 1] = m_selectors[j];
+			j = j - 1;
+		}
+		m_selectors[j + 1] = key;
+	}
 }
 
 void litehtml::css::parse_atrule(const tstring& text, const tchar_t* baseurl, const std::shared_ptr<document>& doc, const std::shared_ptr<media_query_list>& media)

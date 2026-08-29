@@ -5,7 +5,8 @@ HTML/CSS engine. It is now also a small browser that runs without JUCE, without
 a window system, and — where it matters — without any third-party library at
 all.
 
-The engine is unchanged: litehtml does layout, [quickjs](https://github.com/bellard/quickjs)
+The engine is unchanged: litehtml does layout, [quickjs-ng](https://github.com/quickjs-ng/quickjs)
+(v0.16.x, vendored under `juce_litehtml/quickjs/`) runs scripts, and JUCE paints.
 is there for scripting. What is new is everything around it, written so it can
 be lowered to C by [Crust](https://github.com/brentharts/crust).
 
@@ -251,14 +252,10 @@ Nearest first:
 
 **JavaScript.** `mininodejs` runs snippets against the same engine the browser
 links, without a page in the way (see [mininode/README.md](mininode/README.md)).
-Its feature matrix puts the engine at 59 of 61, with ES2015 through ES2020
-essentially complete. The missing standard library functions are supplied by a
-guarded JavaScript prelude the browser context shares. What remains is two
-parser gaps, static class blocks and top-level await, and both are engine work
-rather than additions -- see `mininode/README.md` for why top-level await in
-particular is not the two-line change it appears to be. The vendored quickjs
-is from March 2021 and upstream implemented both in 2023, so the open question
-is whether to rebase.
+The vendored engine is [quickjs-ng](https://github.com/quickjs-ng/quickjs) 0.16.x
+(replacing the March 2021 Bellard snapshot), so static class blocks, private
+fields, BigInt, and top-level await (as an ES module, `mininodejs -m`) work
+out of the box.
 
 Further out: form controls, text selection, and letting quickjs actually run
 the scripts the loader is already fetching.

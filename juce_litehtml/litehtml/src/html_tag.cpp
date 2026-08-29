@@ -924,9 +924,21 @@ int litehtml::html_tag::select_element(const css_element_selector& selector, boo
 					}
 					break;
 				default:
-					if(std::find(m_pseudo_classes.begin(), m_pseudo_classes.end(), attr->val) == m_pseudo_classes.end())
+					/* crust: indexed membership; see set_pseudo_class. */
 					{
-						return select_no_match;
+						bool found = false;
+						for(int pci = 0; pci < (int)m_pseudo_classes.size(); pci++)
+						{
+							if(m_pseudo_classes[pci] == attr->val)
+							{
+								found = true;
+								break;
+							}
+						}
+						if(!found)
+						{
+							return select_no_match;
+						}
 					}
 					break;
 				}
@@ -1376,36 +1388,61 @@ int litehtml::html_tag::find_next_line_top( int top, int width, int def_right )
 		int new_top = top;
 		int_vector points;
 
-		for(const auto& fb : m_floats_left)
+		/* crust: indexed loops and membership -- `find`/`sort` are function
+		   templates that need an explicit `<T>`, and `sort` here took a
+		   comparator the subset's two-arg form does not have. */
+		for(int fi = 0; fi < (int)m_floats_left.size(); fi++)
 		{
+			const floated_box& fb = m_floats_left[fi];
 			if(fb.pos.top() >= top)
 			{
-				if(find(points.begin(), points.end(), fb.pos.top()) == points.end())
+				bool found = false;
+				for(int pi = 0; pi < (int)points.size(); pi++)
+				{
+					if(points[pi] == fb.pos.top()) { found = true; break; }
+				}
+				if(!found)
 				{
 					points.push_back(fb.pos.top());
 				}
 			}
 			if (fb.pos.bottom() >= top)
 			{
-				if (find(points.begin(), points.end(), fb.pos.bottom()) == points.end())
+				bool found = false;
+				for(int pi = 0; pi < (int)points.size(); pi++)
+				{
+					if(points[pi] == fb.pos.bottom()) { found = true; break; }
+				}
+				if(!found)
 				{
 					points.push_back(fb.pos.bottom());
 				}
 			}
 		}
 
-		for (const auto& fb : m_floats_right)
+		for(int fi = 0; fi < (int)m_floats_right.size(); fi++)
 		{
+			const floated_box& fb = m_floats_right[fi];
 			if (fb.pos.top() >= top)
 			{
-				if (find(points.begin(), points.end(), fb.pos.top()) == points.end())
+				bool found = false;
+				for(int pi = 0; pi < (int)points.size(); pi++)
+				{
+					if(points[pi] == fb.pos.top()) { found = true; break; }
+				}
+				if(!found)
 				{
 					points.push_back(fb.pos.top());
 				}
 			}
 			if (fb.pos.bottom() >= top)
 			{
-				if (find(points.begin(), points.end(), fb.pos.bottom()) == points.end())
+				bool found = false;
+				for(int pi = 0; pi < (int)points.size(); pi++)
+				{
+					if(points[pi] == fb.pos.bottom()) { found = true; break; }
+				}
+				if(!found)
 				{
 					points.push_back(fb.pos.bottom());
 				}
@@ -1414,11 +1451,23 @@ int litehtml::html_tag::find_next_line_top( int top, int width, int def_right )
 
 		if(!points.empty())
 		{
-			sort(points.begin(), points.end(), std::less<int>( ));
+			/* Ascending insertion sort; same order `std::less<int>` gave. */
+			for(int i = 1; i < (int)points.size(); i++)
+			{
+				int key = points[i];
+				int j = i - 1;
+				while(j >= 0 && points[j] > key)
+				{
+					points[j + 1] = points[j];
+					j = j - 1;
+				}
+				points[j + 1] = key;
+			}
 			new_top = points.back();
 
-			for(auto pt : points)
+			for(int pi = 0; pi < (int)points.size(); pi++)
 			{
+				int pt = points[pi];
 				int pos_left	= 0;
 				int pos_right	= def_right;
 				get_line_left_right(pt, def_right, pos_left, pos_right);
@@ -2464,18 +2513,44 @@ bool litehtml::html_tag::set_pseudo_class( const tchar_t* pclass, bool add )
 	bool ret = false;
 	if(add)
 	{
-		if(std::find(m_pseudo_classes.begin(), m_pseudo_classes.end(), pclass) == m_pseudo_classes.end())
+		/* crust: indexed search -- `std::find` needs an explicit `<T>`. */
+		bool found = false;
+		for(int i = 0; i < (int)m_pseudo_classes.size(); i++)
+		{
+			if(m_pseudo_classes[i] == pclass)
+			{
+				found = true;
+				break;
+			}
+		}
+		if(!found)
 		{
 			m_pseudo_classes.push_back(pclass);
 			ret = true;
 		}
 	} else
 	{
-		auto pi = std::find(m_pseudo_classes.begin(), m_pseudo_classes.end(), pclass);
-		if(pi != m_pseudo_classes.end())
+		/* crust: rebuild without the match -- iterator erase is outside
+		   the subset (see set_class). */
+		string_vector kept;
+		for(int i = 0; i < (int)m_pseudo_classes.size(); i++)
 		{
-			m_pseudo_classes.erase(pi);
-			ret = true;
+			if(m_pseudo_classes[i] == pclass)
+			{
+				ret = true;
+			}
+			else
+			{
+				kept.push_back(m_pseudo_classes[i]);
+			}
+		}
+		if(ret)
+		{
+			m_pseudo_classes.clear();
+			for(int i = 0; i < (int)kept.size(); i++)
+			{
+				m_pseudo_classes.push_back(kept[i]);
+			}
 		}
 	}
 	return ret;
@@ -2886,12 +2961,22 @@ litehtml::element_position litehtml::html_tag::get_element_position(css_offsets*
 
 /* crust: `bg_paint` is an explicit pointer rather than a reference. A
    reference parameter here was read as handing the object over by value,
-   which would have the callee destroy a buffer the caller still owns. */
+   which would have the callee destroy a buffer the caller still owns.
+
+   Field-by-field rather than `*bg_paint = *bg`. That used
+   `operator=(const background&)`, which the subset does not lower --
+   assigning an owning type without a same-type `operator=` would leave
+   two objects sharing one buffer. Same fields the converting operator
+   writes in background.cpp. */
 void litehtml::html_tag::init_background_paint(position pos, background_paint* bg_paint, const background* bg)
 {
 	if(!bg) return;
 
-	*bg_paint = *bg;
+	bg_paint->attachment = bg->m_attachment;
+	bg_paint->baseurl = bg->m_baseurl;
+	bg_paint->image = bg->m_image;
+	bg_paint->repeat = bg->m_repeat;
+	bg_paint->color = bg->m_color;
 	position content_box	= pos;
 	position padding_box	= pos;
 	padding_box += m_padding;
@@ -3101,7 +3186,12 @@ litehtml::tstring litehtml::html_tag::get_list_marker_text(int index)
 			tstring txt = t_to_string(index);
 			if (txt.length() == 1)
 			{
-				txt = _t("0") + txt;
+				/* crust: string `operator+` is not in the subset; prepend
+				   via a fresh string and append (see html.cpp / num_cvt). */
+				tstring padded;
+				padded.append(_t("0"));
+				padded.append(txt.c_str());
+				txt = padded;
 			}
 			return txt;
 		}

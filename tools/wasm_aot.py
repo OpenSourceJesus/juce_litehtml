@@ -21,20 +21,50 @@ already looks for it.
 """
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-CRUST = ROOT.parent / "crust"
 
 # Value type -> the one-character kind the registry uses. Matches the
 # characters documented in headless/wasm_registry.h.
 KIND = {0x7F: "i", 0x7E: "j", 0x7D: "f", 0x7C: "d"}
 
 
+def find_crust() -> Path | None:
+    """Crust tree that has wasm2c (and preferably --target wasm).
+
+    Prefers $CRUST_DIR, then ../crust, then ../crust-brentharts. The last
+    is for a local brentharts/crust checkout kept beside an older fork that
+    does not yet carry the wasm tooling.
+    """
+    candidates = []
+    env = os.environ.get("CRUST_DIR")
+    if env:
+        candidates.append(Path(env))
+    candidates.append(ROOT.parent / "crust")
+    candidates.append(ROOT.parent / "crust-brentharts")
+    for c in candidates:
+        if (c / "tools" / "wasm2c.py").is_file():
+            return c
+    return None
+
+
 def crust_available() -> bool:
-    return (CRUST / "tools" / "wasm2c.py").is_file()
+    return find_crust() is not None
+
+
+def crust_dir() -> Path:
+    found = find_crust()
+    if found is None:
+        raise SystemExit(
+            "wasm_aot: crust with wasm2c not found beside this repository\n"
+            "  git clone https://github.com/brentharts/crust.git "
+            "../crust\n"
+            "  (or set CRUST_DIR to a checkout that has tools/wasm2c.py)")
+    return found
 
 
 def c_ident(name: str) -> str:
@@ -47,6 +77,45 @@ def c_ident(name: str) -> str:
     return s
 
 
+def compile_c_modules(src_dir: Path, modules_dir: Path) -> list:
+    """Compile `wasm/src/*.c` to `wasm/modules/*.wasm` with Crust.
+
+    This is the first half of the round trip documented in wasm/README.md.
+    Skipped when Crust has no wasm back end; an existing `.wasm` in
+    `modules_dir` is left alone either way.
+    """
+    crust = find_crust()
+    if crust is None or not src_dir.is_dir():
+        return []
+
+    modules_dir.mkdir(parents=True, exist_ok=True)
+    env = os.environ.copy()
+    existing = env.get("PYTHONPATH", "")
+    env["PYTHONPATH"] = (
+        f"{crust}{os.pathsep}{existing}" if existing else str(crust))
+
+    out = []
+    for src in sorted(src_dir.glob("*.c")):
+        wasm = modules_dir / (src.stem + ".wasm")
+        if (wasm.exists()
+                and wasm.stat().st_mtime >= src.stat().st_mtime):
+            out.append(wasm)
+            continue
+        proc = subprocess.run(
+            [sys.executable, "-m", "shivyc.main", "--target", "wasm",
+             str(src), "-o", str(wasm)],
+            capture_output=True, text=True, env=env, cwd=str(crust))
+        if proc.returncode != 0:
+            # A crust without --target wasm still serves wasm2c for
+            # hand-dropped modules; do not fail the whole build.
+            msg = (proc.stdout + proc.stderr).strip()
+            print("  [wasm] could not compile %s:\n%s"
+                  % (src.name, msg[:500]), file=sys.stderr)
+            continue
+        out.append(wasm)
+    return out
+
+
 def read_exports(wasm_path: Path):
     """(name, params, result) for each exported function.
 
@@ -54,7 +123,7 @@ def read_exports(wasm_path: Path):
     one decoder, already tested against real modules, is better than a second
     partial one that can disagree with it.
     """
-    sys.path.insert(0, str(CRUST))
+    sys.path.insert(0, str(crust_dir()))
     import shivyc.wasm as w
     import shivyc.wasm_reader as reader
 
@@ -152,8 +221,9 @@ def translate(wasm_path: Path, out_dir: Path) -> tuple:
         return module_c, glue_cpp
 
     out_dir.mkdir(parents=True, exist_ok=True)
+    crust = crust_dir()
     proc = subprocess.run(
-        [sys.executable, str(CRUST / "tools" / "wasm2c.py"),
+        [sys.executable, str(crust / "tools" / "wasm2c.py"),
          str(wasm_path), "-o", str(module_c), "--no-main"],
         capture_output=True, text=True)
     if proc.returncode != 0:
@@ -165,11 +235,25 @@ def translate(wasm_path: Path, out_dir: Path) -> tuple:
     return module_c, glue_cpp
 
 
-def translate_all(modules_dir: Path, out_dir: Path) -> list:
-    """Translate every `.wasm` in `modules_dir`. Returns the source paths."""
-    if not modules_dir.is_dir():
-        return []
+def translate_all(modules_dir: Path, out_dir: Path,
+                  src_dir: Path | None = None) -> list:
+    """Translate every `.wasm` in `modules_dir`. Returns the source paths.
+
+    When `src_dir` is set (or defaults to wasm/src beside modules), C sources
+    there are compiled to `.wasm` first so a fresh checkout still gets the
+    demo module without a hand-placed binary.
+    """
     if not crust_available():
+        return []
+
+    if src_dir is None and modules_dir.name == "modules":
+        candidate = modules_dir.parent / "src"
+        if candidate.is_dir():
+            src_dir = candidate
+    if src_dir is not None:
+        compile_c_modules(src_dir, modules_dir)
+
+    if not modules_dir.is_dir():
         return []
 
     sources = []
@@ -185,9 +269,9 @@ def main(argv) -> int:
         print(__doc__)
         return 2
     if not crust_available():
-        print("wasm_aot: crust not found at %s" % CRUST)
+        print("wasm_aot: crust with wasm2c not found")
         print("  git clone https://github.com/brentharts/crust.git beside "
-              "this repository")
+              "this repository (or set CRUST_DIR)")
         return 1
     out = translate_all(Path(argv[1]), Path(argv[2]))
     for p in out:

@@ -1,8 +1,13 @@
 add_library(quickjs STATIC)
 
-file(GLOB_RECURSE src
-    ${CMAKE_CURRENT_SOURCE_DIR}/quickjs/*.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/quickjs/*.c
+# quickjs-ng library sources (v0.16.x). Builtin *.h files are included from
+# quickjs.c; win/ holds platform shims for MSVC builds.
+set(quickjs_sources
+    ${CMAKE_CURRENT_SOURCE_DIR}/quickjs/dtoa.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/quickjs/libregexp.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/quickjs/libunicode.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/quickjs/quickjs.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/quickjs/quickjs-libc.c
 )
 
 target_include_directories(quickjs
@@ -10,14 +15,13 @@ target_include_directories(quickjs
         ${CMAKE_CURRENT_SOURCE_DIR}/quickjs
 )
 
-target_sources(quickjs PRIVATE ${src})
+target_sources(quickjs PRIVATE ${quickjs_sources})
 
 target_compile_definitions(quickjs
     PUBLIC
-        JS_STRICT_NAN_BOXING=1
-        CONFIG_BIGNUM=1
-        CONFIG_JSX=1
+        QJS_BUILD_LIBC=1
     PRIVATE
+        _GNU_SOURCE
         _SRC_SECURE_NO_WARNINGS
 )
 
