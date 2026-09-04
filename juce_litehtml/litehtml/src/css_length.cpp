@@ -11,7 +11,7 @@ void litehtml::css_length::fromString( const tstring& str, const tstring& predef
 		return;
 	}
 
-	int predef = value_index(str, predefs, -1);
+	int predef = value_index(str.c_str(), predefs.c_str(), -1);
 	if(predef >= 0)
 	{
 		m_is_predefined = true;
@@ -29,7 +29,9 @@ void litehtml::css_length::fromString( const tstring& str, const tstring& predef
 			{
 				if(t_isdigit(chr) || chr == _t('.') || chr == _t('+') || chr == _t('-'))
 				{
-					num += chr;
+					/* crust: `+=` needs a named string; a char has no address
+					   as one. `push_back` takes the char directly. */
+					num.push_back(chr);
 				} else
 				{
 					is_unit = true;
@@ -37,13 +39,14 @@ void litehtml::css_length::fromString( const tstring& str, const tstring& predef
 			}
 			if(is_unit)
 			{
-				un += chr;
+				/* crust: see above -- `push_back` rather than `+=`. */
+				un.push_back(chr);
 			}
 		}
 		if(!num.empty())
 		{
 			m_value = (float) t_strtod(num.c_str(), nullptr);
-			m_units	= (css_units) value_index(un, css_units_strings, css_units_none);
+			m_units	= (css_units) value_index(un.c_str(), css_units_strings, css_units_none);
 		} else
 		{
 			// not a number so it is predefined

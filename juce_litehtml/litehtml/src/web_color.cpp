@@ -204,7 +204,7 @@ litehtml::web_color litehtml::web_color::from_string(const tchar_t* str, litehtm
 		}
 
 		std::vector<tstring> tokens;
-		split_string(s, tokens, _t(", \t"));
+		split_string(s.c_str(), tokens, _t(", \t"));
 
 		web_color clr;
 

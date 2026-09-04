@@ -291,15 +291,17 @@ litehtml::uint_ptr litehtml::document::add_font( const tchar_t* name, int size, 
 	tchar_t strSize[20];
 	t_itoa(size, strSize, 20, 10);
 
+	/* crust: `+=` needs a named string; a `const tchar_t*` / array has no
+	   address as one. `append` takes the pointer directly. */
 	tstring key = name;
-	key += _t(":");
-	key += strSize;
-	key += _t(":");
-	key += weight;
-	key += _t(":");
-	key += style;
-	key += _t(":");
-	key += decoration;
+	key.append(_t(":"));
+	key.append(strSize);
+	key.append(_t(":"));
+	key.append(weight);
+	key.append(_t(":"));
+	key.append(style);
+	key.append(_t(":"));
+	key.append(decoration);
 
 	if(m_fonts.find(key) == m_fonts.end())
 	{
@@ -385,15 +387,16 @@ litehtml::uint_ptr litehtml::document::get_font( const tchar_t* name, int size, 
 	tchar_t strSize[20];
 	t_itoa(size, strSize, 20, 10);
 
+	/* crust: see add_font -- `append` rather than `+=` for c-strings. */
 	tstring key = name;
-	key += _t(":");
-	key += strSize;
-	key += _t(":");
-	key += weight;
-	key += _t(":");
-	key += style;
-	key += _t(":");
-	key += decoration;
+	key.append(_t(":"));
+	key.append(strSize);
+	key.append(_t(":"));
+	key.append(weight);
+	key.append(_t(":"));
+	key.append(style);
+	key.append(_t(":"));
+	key.append(decoration);
 
 	auto el = m_fonts.find(key);
 
@@ -524,7 +527,10 @@ void litehtml::document::add_stylesheet( const tchar_t* str, const tchar_t* base
 {
 	if(str && str[0])
 	{
-		m_css.push_back(css_text(str, baseurl, media));
+		/* crust: bind the temporary before the reference parameter.
+		   `push_back` takes `const T &`, and a call result has no address. */
+		css_text ct(str, baseurl, media);
+		m_css.push_back(ct);
 	}
 }
 
@@ -832,7 +838,10 @@ void litehtml::document::create_node(void* gnode, elements_vector& elements, boo
 			for (unsigned int i = 0; i < node->v.element.attributes.length; i++)
 			{
 				attr = (GumboAttribute*)node->v.element.attributes.data[i];
-				attrs[tstring(litehtml_from_utf8(attr->name))] = litehtml_from_utf8(attr->value);
+				/* crust: bind call results before map key/value refs. */
+				tstring attr_name = litehtml_from_utf8(attr->name);
+				tstring attr_value = litehtml_from_utf8(attr->value);
+				attrs[attr_name] = attr_value;
 			}
 
 
@@ -885,7 +894,10 @@ void litehtml::document::create_node(void* gnode, elements_vector& elements, boo
 				   wchar_to_utf8 by value, and a method call on a by-value
 				   result has no object to call it on. */
 				litehtml::wchar_to_utf8 whole(str_in);
-				elements.push_back(std::make_shared<el_text>(whole.c_str(), shared_from_this()));
+				/* crust: bind doc and make_shared before push_back. */
+				std::shared_ptr<litehtml::document> doc = shared_from_this();
+				std::shared_ptr<litehtml::element> el = std::make_shared<el_text>(whole.c_str(), doc);
+				elements.push_back(el);
 			}
 			else
 			{
@@ -896,13 +908,17 @@ void litehtml::document::create_node(void* gnode, elements_vector& elements, boo
 				m_container->split_text_parts(node->v.text.text, parts, kinds);
 				for (int pi = 0; pi < (int)parts.size(); pi++)
 				{
+					/* crust: bind doc and make_shared before push_back. */
+					std::shared_ptr<litehtml::document> doc = shared_from_this();
 					if (kinds[pi] == 0)
 					{
-						elements.push_back(std::make_shared<el_text>(parts[pi].c_str(), shared_from_this()));
+						std::shared_ptr<litehtml::element> el = std::make_shared<el_text>(parts[pi].c_str(), doc);
+						elements.push_back(el);
 					}
 					else
 					{
-						elements.push_back(std::make_shared<el_space>(parts[pi].c_str(), shared_from_this()));
+						std::shared_ptr<litehtml::element> el = std::make_shared<el_space>(parts[pi].c_str(), doc);
+						elements.push_back(el);
 					}
 				}
 			}
@@ -929,7 +945,10 @@ void litehtml::document::create_node(void* gnode, elements_vector& elements, boo
 			{
 				/* crust: substr returns a string by value; bind it first. */
 				tstring one_char = str.substr(i, 1);
-				elements.push_back(std::make_shared<el_space>(one_char.c_str(), shared_from_this()));
+				/* crust: bind doc and make_shared before push_back. */
+				std::shared_ptr<litehtml::document> doc = shared_from_this();
+				std::shared_ptr<litehtml::element> el = std::make_shared<el_space>(one_char.c_str(), doc);
+				elements.push_back(el);
 			}
 		}
 		break;
@@ -1031,7 +1050,9 @@ void litehtml::document::fix_table_children(std::shared_ptr<litehtml::element>& 
 		{
 			if (!tmp.empty())
 			{
-				out.push_back(make_anonymous_wrapper(el_ptr, disp_str, tmp));
+				/* crust: bind the call result before push_back's reference. */
+				std::shared_ptr<litehtml::element> wrap = make_anonymous_wrapper(el_ptr, disp_str, tmp);
+				out.push_back(wrap);
 				tmp.clear();
 			}
 			out.push_back(child);
@@ -1040,7 +1061,9 @@ void litehtml::document::fix_table_children(std::shared_ptr<litehtml::element>& 
 
 	if (!tmp.empty())
 	{
-		out.push_back(make_anonymous_wrapper(el_ptr, disp_str, tmp));
+		/* crust: bind the call result before push_back's reference. */
+		std::shared_ptr<litehtml::element> wrap = make_anonymous_wrapper(el_ptr, disp_str, tmp);
+		out.push_back(wrap);
 		tmp.clear();
 	}
 

@@ -78,9 +78,11 @@ void litehtml::el_table::parse_attributes()
 	str = get_attr(_t("cellspacing"));
 	if(str)
 	{
+		/* crust: `+=` needs a named string; a `const tchar_t*` has no
+		   address as one. `append` takes the pointer directly. */
 		tstring val = str;
-		val += _t(" ");
-		val += str;
+		val.append(_t(" "));
+		val.append(str);
 		m_style.add_property(_t("border-spacing"), val.c_str(), nullptr, false, this);
 	}
 	

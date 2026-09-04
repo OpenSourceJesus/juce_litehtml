@@ -21,7 +21,7 @@ std::shared_ptr<litehtml::media_query> litehtml::media_query::create_from_string
 	std::shared_ptr<media_query> query = std::make_shared<media_query>();
 
 	string_vector tokens;
-	split_string(str, tokens, _t(" \t\r\n"), _t(""), _t("("));
+	split_string(str.c_str(), tokens, _t(" \t\r\n"), _t(""), _t("("));
 
 	for(tstring & token : tokens)
 	{
@@ -37,11 +37,11 @@ std::shared_ptr<litehtml::media_query> litehtml::media_query::create_from_string
 			}
 			media_query_expression expr;
 			string_vector expr_tokens;
-			split_string(token, expr_tokens, _t(":"));
+			split_string(token.c_str(), expr_tokens, _t(":"));
 			if(!expr_tokens.empty())
 			{
 				trim(expr_tokens[0]);
-				expr.feature = (media_feature) value_index(expr_tokens[0], media_feature_strings, media_feature_none);
+				expr.feature = (media_feature) value_index(expr_tokens[0].c_str(), media_feature_strings, media_feature_none);
 				if(expr.feature != media_feature_none)
 				{
 					if(expr_tokens.size() == 1)
@@ -53,7 +53,7 @@ std::shared_ptr<litehtml::media_query> litehtml::media_query::create_from_string
 						expr.check_as_bool = false;
 						if(expr.feature == media_feature_orientation)
 						{
-							expr.val = value_index(expr_tokens[1], media_orientation_strings, media_orientation_landscape);
+							expr.val = value_index(expr_tokens[1].c_str(), media_orientation_strings, media_orientation_landscape);
 						} else
 						{
 							tstring::size_type slash_pos = expr_tokens[1].find(_t('/'));
@@ -88,7 +88,7 @@ std::shared_ptr<litehtml::media_query> litehtml::media_query::create_from_string
 			}
 		} else
 		{
-			query->m_media_type = (media_type) value_index(token, media_type_strings, media_type_all);
+			query->m_media_type = (media_type) value_index(token.c_str(), media_type_strings, media_type_all);
 
 		}
 	}
@@ -127,7 +127,7 @@ std::shared_ptr<litehtml::media_query_list> litehtml::media_query_list::create_f
 	std::shared_ptr<media_query_list> list = std::make_shared<media_query_list>();
 
 	string_vector tokens;
-	split_string(str, tokens, _t(","));
+	split_string(str.c_str(), tokens, _t(","));
 
 	for(tstring & token : tokens)
 	{

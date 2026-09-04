@@ -36,7 +36,7 @@ public:
     /** Cursor litehtml last asked for, e.g. "pointer" over a link. */
     const char* getCursorName();
 
-    virtual void draw_background (litehtml::uint_ptr hdc, const litehtml::background_paint& bg);
+    virtual void draw_background (litehtml::uint_ptr hdc, const litehtml::background_paint* bg);
     virtual void set_cursor (const litehtml::tchar_t* cursor);
 
 private:
