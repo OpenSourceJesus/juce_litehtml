@@ -30,10 +30,14 @@ void litehtml::css::parse_stylesheet(const tchar_t* str, const tchar_t* baseurl,
 			}
 			if(pos != tstring::npos)
 			{
-				parse_atrule(text.substr(sPos, pos - sPos + 1), baseurl, doc, media);
+				/* crust: bind substr before the reference parameter. */
+				tstring atrule = text.substr(sPos, pos - sPos + 1);
+				parse_atrule(atrule, baseurl, doc, media);
 			} else
 			{
-				parse_atrule(text.substr(sPos), baseurl, doc, media);
+				/* crust: bind substr before the reference parameter. */
+				tstring atrule = text.substr(sPos);
+				parse_atrule(atrule, baseurl, doc, media);
 			}
 
 			if(pos != tstring::npos)
@@ -51,9 +55,19 @@ void litehtml::css::parse_stylesheet(const tchar_t* str, const tchar_t* baseurl,
 		tstring::size_type style_end	= text.find(_t('}'), pos);
 		if(style_start != tstring::npos && style_end != tstring::npos)
 		{
-			auto style = text.substr(style_start + 1, style_end - style_start - 1);
+			/* crust: written type -- `auto` cannot deduce substr here
+			   without a clang subprocess, and the harness defaults to
+			   --no-clang. */
+			tstring style = text.substr(style_start + 1, style_end - style_start - 1);
 
-			parse_selectors(text.substr(pos, style_start - pos), style, media, baseurl ? baseurl : _t(""));
+			/* crust: bind substr before the reference parameter. */
+			tstring selector_txt = text.substr(pos, style_start - pos);
+			const tchar_t* baseurl_arg = baseurl;
+			if(!baseurl_arg)
+			{
+				baseurl_arg = _t("");
+			}
+			parse_selectors(selector_txt, style, media, baseurl_arg);
 
 			if(media && doc)
 			{
@@ -98,16 +112,17 @@ void litehtml::css::parse_css_url( const tstring& str, tstring& url )
 	}
 }
 
-bool litehtml::css::parse_selectors( const tstring& txt, const tstring& styles, const std::shared_ptr<media_query_list>& media, const tstring& baseurl )
+bool litehtml::css::parse_selectors( const tstring& txt, const tstring& styles, const std::shared_ptr<media_query_list>& media, const tchar_t* baseurl )
 {
 	tstring selector = txt;
 	trim(selector);
 	string_vector tokens;
-	split_string(selector, tokens, _t(","));
+	split_string(selector.c_str(), tokens, _t(","));
 
 	bool added_something = false;
 
-	for(auto & token : tokens)
+	/* crust: written type -- `auto` cannot stand alone under --no-clang. */
+	for(tstring & token : tokens)
 	{
 		std::shared_ptr<css_selector> new_selector = std::make_shared<css_selector>(media, baseurl);
         new_selector->m_style = styles;
@@ -155,14 +170,17 @@ void litehtml::css::parse_atrule(const tstring& text, const tchar_t* baseurl, co
 		}
 		trim(iStr);
 		string_vector tokens;
-		split_string(iStr, tokens, _t(" "), _t(""), _t("(\""));
+		split_string(iStr.c_str(), tokens, _t(" "), _t(""), _t("(\""));
 		if(!tokens.empty())
 		{
 			tstring url;
-			parse_css_url(tokens.front(), url);
+			/* crust: bind tokens[0] before the reference parameter --
+			   `front()` is a call result with no address. */
+			tstring front = tokens[0];
+			parse_css_url(front, url);
 			if(url.empty())
 			{
-				url = tokens.front();
+				url = front;
 			}
 			tokens.erase(tokens.begin());
 			if(doc)
@@ -182,14 +200,17 @@ void litehtml::css::parse_atrule(const tstring& text, const tchar_t* baseurl, co
 						std::shared_ptr<media_query_list> new_media = media;
 						if(!tokens.empty())
 						{
+							/* crust: indexed loop and `append` -- iterators
+							   and `+=` of a `const tchar_t*` are outside
+							   what this pass can name. */
 							tstring media_str;
-							for(auto iter = tokens.begin(); iter != tokens.end(); iter++)
+							for(size_t ti = 0; ti < tokens.size(); ti++)
 							{
-								if(iter != tokens.begin())
+								if(ti != 0)
 								{
-									media_str += _t(" ");
+									media_str.append(_t(" "));
 								}
-								media_str += (*iter);
+								media_str.append(tokens[ti].c_str());
 							}
 							new_media = media_query_list::create_from_string(media_str, doc);
 							if(!new_media)

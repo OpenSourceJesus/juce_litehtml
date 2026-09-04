@@ -28,8 +28,11 @@ void litehtml::table_grid::begin_row(std::shared_ptr<litehtml::element>& row)
 {
 	std::vector<table_cell> r;
 	m_cells.push_back(r);
-	
-	m_rows.push_back(table_row(0, row));
+
+	/* crust: bind the temporary before the reference parameter.
+	   `push_back` takes `const T &`, and a call result has no address. */
+	table_row new_row(0, row);
+	m_rows.push_back(new_row);
 
 }
 

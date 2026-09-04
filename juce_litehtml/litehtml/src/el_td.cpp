@@ -14,9 +14,11 @@ void litehtml::el_td::parse_attributes()
 	str = get_attr(_t("background"));
 	if(str)
 	{
+		/* crust: `+=` needs a named string; a `const tchar_t*` has no
+		   address as one. `append` takes the pointer directly. */
 		tstring url = _t("url('");
-		url += str;
-		url += _t("')");
+		url.append(str);
+		url.append(_t("')"));
 		m_style.add_property(_t("background-image"), url.c_str(), nullptr, false, this);
 	}
 	str = get_attr(_t("align"));

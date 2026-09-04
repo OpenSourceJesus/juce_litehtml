@@ -97,7 +97,9 @@ litehtml::tstring litehtml::num_cvt::to_roman_lower(int value)
 	{
 		while (value >= current->value)
 		{
-			result += current->numeral;
+			/* crust: `+=` needs a named string; a `const tchar_t*` has no
+			   address as one. `append` takes the pointer directly. */
+			result.append(current->numeral);
 			value -= current->value;
 		}
 	}
@@ -124,7 +126,8 @@ litehtml::tstring litehtml::num_cvt::to_roman_upper(int value)
 	{
 		while (value >= current->value)
 		{
-			result += current->numeral;
+			/* crust: see to_roman_lower -- `append` rather than `+=`. */
+			result.append(current->numeral);
 			value -= current->value;
 		}
 	}

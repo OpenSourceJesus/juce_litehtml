@@ -35,7 +35,7 @@ void litehtml::el_before_after_base::add_style(const tstring& style, const tstri
 	tstring content = get_style_property(_t("content"), false, _t(""));
 	if(!content.empty())
 	{
-		int idx = value_index(content, content_property_string);
+		int idx = value_index(content.c_str(), content_property_string);
 		if(idx < 0)
 		{
 			tstring fnc;
@@ -78,7 +78,9 @@ void litehtml::el_before_after_base::add_style(const tstring& style, const tstri
 					fnc.clear();
 				} else
 				{
-					fnc += content.at(i);
+					/* crust: `+=` needs a named string; `at` returns a char
+					   with no address as one. `push_back` takes the char. */
+					fnc.push_back(content.at(i));
 					i++;
 				}
 			}
@@ -120,28 +122,32 @@ void litehtml::el_before_after_base::add_text( const tstring& txt )
 				appendChild(el);
 			} else
 			{
-				word += convert_escape(esc.c_str() + 1);
+				/* crust: convert_escape returns by value; bind before append. */
+				tstring escaped = convert_escape(esc.c_str() + 1);
+				word.append(escaped.c_str());
 				esc.clear();
 				if(txt.at(i) == _t('\\'))
 				{
-					esc += txt.at(i);
+					esc.push_back(txt.at(i));
 				}
 			}
 		} else
 		{
 			if(!esc.empty() || txt.at(i) == _t('\\'))
 			{
-				esc += txt.at(i);
+				esc.push_back(txt.at(i));
 			} else
 			{
-				word += txt.at(i);
+				word.push_back(txt.at(i));
 			}
 		}
 	}
 
 	if(!esc.empty())
 	{
-		word += convert_escape(esc.c_str() + 1);
+		/* crust: see above -- bind convert_escape before append. */
+		tstring escaped = convert_escape(esc.c_str() + 1);
+		word.append(escaped.c_str());
 	}
 	if(!word.empty())
 	{
@@ -153,7 +159,7 @@ void litehtml::el_before_after_base::add_text( const tstring& txt )
 
 void litehtml::el_before_after_base::add_function( const tstring& fnc, const tstring& params )
 {
-	int idx = value_index(fnc, _t("attr;counter;url"));
+	int idx = value_index(fnc.c_str(), _t("attr;counter;url"));
 	switch(idx)
 	{
 	// attr

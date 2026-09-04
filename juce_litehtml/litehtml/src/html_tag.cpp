@@ -39,7 +39,9 @@ bool litehtml::html_tag::appendChild(const std::shared_ptr<litehtml::element> &e
 {
 	if(el)
 	{
-		el->parent(shared_from_this());
+		/* crust: bind shared_from_this before the reference parameter. */
+		std::shared_ptr<litehtml::element> self = shared_from_this();
+		el->parent(self);
 		m_children.push_back(el);
 		return true;
 	}
@@ -48,7 +50,9 @@ bool litehtml::html_tag::appendChild(const std::shared_ptr<litehtml::element> &e
 
 bool litehtml::html_tag::removeChild(const std::shared_ptr<litehtml::element> &el)
 {
-	if(el && el->parent() == shared_from_this())
+	/* crust: bind shared_from_this before compare / use. */
+	std::shared_ptr<litehtml::element> self = shared_from_this();
+	if(el && el->parent() == self)
 	{
 		el->parent(nullptr);
 		m_children.erase(std::remove(m_children.begin(), m_children.end(), el), m_children.end());
@@ -104,7 +108,9 @@ const litehtml::tchar_t* litehtml::html_tag::get_attr( const tchar_t* name, cons
 
 litehtml::elements_vector litehtml::html_tag::select_all_str( const tstring& selector )
 {
-	css_selector sel(std::shared_ptr<media_query_list>(nullptr), _t(""));
+	/* crust: empty media shared_ptr bound before the reference parameter. */
+	std::shared_ptr<media_query_list> no_media;
+	css_selector sel(no_media, _t(""));
 	sel.parse(selector);
 
 	return select_all(sel);
@@ -121,7 +127,9 @@ void litehtml::html_tag::select_all(const css_selector& selector, elements_vecto
 {
 	if(select(selector))
 	{
-		res.push_back(shared_from_this());
+		/* crust: bind before push_back reference parameter. */
+		std::shared_ptr<litehtml::element> self = shared_from_this();
+		res.push_back(self);
 	}
 
 	for(auto& el : m_children)
@@ -133,7 +141,9 @@ void litehtml::html_tag::select_all(const css_selector& selector, elements_vecto
 
 std::shared_ptr<litehtml::element> litehtml::html_tag::select_one_str( const tstring& selector )
 {
-	css_selector sel(std::shared_ptr<media_query_list>(nullptr), _t(""));
+	/* crust: empty media shared_ptr bound before the reference parameter. */
+	std::shared_ptr<media_query_list> no_media;
+	css_selector sel(no_media, _t(""));
 	sel.parse(selector);
 
 	return select_one(sel);
@@ -374,7 +384,8 @@ void litehtml::html_tag::parse_styles(bool is_reparse)
 		m_display == display_table_row ||
 		m_display == display_table_row_group)
 	{
-		doc->add_tabular(shared_from_this());
+		std::shared_ptr<litehtml::element> self = shared_from_this();
+		doc->add_tabular(self);
 	}
 
 	m_css_text_indent.fromString(	get_style_property(_t("text-indent"),	true,	_t("0")),	_t("0"));
@@ -568,7 +579,8 @@ void litehtml::html_tag::init()
 		table_rows_selector		row_selector;
 		table_cells_selector	cell_selector;
 
-		elements_iterator row_iter(shared_from_this(), &table_selector, &row_selector);
+		std::shared_ptr<litehtml::element> self = shared_from_this();
+		elements_iterator row_iter(self, &table_selector, &row_selector);
 
 		std::shared_ptr<litehtml::element> row = row_iter.next(false);
 		while (row)
@@ -821,42 +833,48 @@ int litehtml::html_tag::select_element(const css_element_selector& selector, boo
 					selector_name = attr->val;
 				}
 
-				int pseudo_selector = value_index(selector_name, pseudo_class_strings);
+				int pseudo_selector = value_index(selector_name.c_str(), pseudo_class_strings);
 
 				switch(pseudo_selector)
 				{
 				case pseudo_class_only_child:
-					if (!el_parent || !el_parent->is_only_child(shared_from_this(), false))
+					std::shared_ptr<litehtml::element> self = shared_from_this();
+					if (!el_parent || !el_parent->is_only_child(self, false))
 					{
 						return select_no_match;
 					}
 					break;
 				case pseudo_class_only_of_type:
-					if (!el_parent || !el_parent->is_only_child(shared_from_this(), true))
+					std::shared_ptr<litehtml::element> self = shared_from_this();
+					if (!el_parent || !el_parent->is_only_child(self, true))
 					{
 						return select_no_match;
 					}
 					break;
 				case pseudo_class_first_child:
-					if (!el_parent || !el_parent->is_nth_child(shared_from_this(), 0, 1, false))
+					std::shared_ptr<litehtml::element> self = shared_from_this();
+					if (!el_parent || !el_parent->is_nth_child(self, 0, 1, false))
 					{
 						return select_no_match;
 					}
 					break;
 				case pseudo_class_first_of_type:
-					if (!el_parent || !el_parent->is_nth_child(shared_from_this(), 0, 1, true))
+					std::shared_ptr<litehtml::element> self = shared_from_this();
+					if (!el_parent || !el_parent->is_nth_child(self, 0, 1, true))
 					{
 						return select_no_match;
 					}
 					break;
 				case pseudo_class_last_child:
-					if (!el_parent || !el_parent->is_nth_last_child(shared_from_this(), 0, 1, false))
+					std::shared_ptr<litehtml::element> self = shared_from_this();
+					if (!el_parent || !el_parent->is_nth_last_child(self, 0, 1, false))
 					{
 						return select_no_match;
 					}
 					break;
 				case pseudo_class_last_of_type:
-					if (!el_parent || !el_parent->is_nth_last_child(shared_from_this(), 0, 1, true))
+					std::shared_ptr<litehtml::element> self = shared_from_this();
+					if (!el_parent || !el_parent->is_nth_last_child(self, 0, 1, true))
 					{
 						return select_no_match;
 					}
@@ -876,25 +894,29 @@ int litehtml::html_tag::select_element(const css_element_selector& selector, boo
 						switch(pseudo_selector)
 						{
 						case pseudo_class_nth_child:
-							if (!el_parent->is_nth_child(shared_from_this(), num, off, false))
+							std::shared_ptr<litehtml::element> self = shared_from_this();
+							if (!el_parent->is_nth_child(self, num, off, false))
 							{
 								return select_no_match;
 							}
 							break;
 						case pseudo_class_nth_of_type:
-							if (!el_parent->is_nth_child(shared_from_this(), num, off, true))
+							std::shared_ptr<litehtml::element> self = shared_from_this();
+							if (!el_parent->is_nth_child(self, num, off, true))
 							{
 								return select_no_match;
 							}
 							break;
 						case pseudo_class_nth_last_child:
-							if (!el_parent->is_nth_last_child(shared_from_this(), num, off, false))
+							std::shared_ptr<litehtml::element> self = shared_from_this();
+							if (!el_parent->is_nth_last_child(self, num, off, false))
 							{
 								return select_no_match;
 							}
 							break;
 						case pseudo_class_nth_last_of_type:
-							if (!el_parent->is_nth_last_child(shared_from_this(), num, off, true))
+							std::shared_ptr<litehtml::element> self = shared_from_this();
+							if (!el_parent->is_nth_last_child(self, num, off, true))
 							{
 								return select_no_match;
 							}
@@ -1500,16 +1522,16 @@ void litehtml::html_tag::parse_background()
 	if(str)
 	{
 		string_vector res;
-		split_string(str, res, _t(" \t"));
+		split_string(str.c_str(), res, _t(" \t"));
 		if(!res.empty())
 		{
 			if(res.size() == 1)
 			{
-				if( value_in_list(res[0], _t("left;right;center")) )
+				if( value_in_list(res[0].c_str(), _t("left;right;center")) )
 				{
 					m_bg.m_position.x.fromString(res[0], _t("left;right;center"));
 					m_bg.m_position.y.set_value(50, css_units_percentage);
-				} else if( value_in_list(res[0], _t("top;bottom;center")) )
+				} else if( value_in_list(res[0].c_str(), _t("top;bottom;center")) )
 				{
 					m_bg.m_position.y.fromString(res[0], _t("top;bottom;center"));
 					m_bg.m_position.x.set_value(50, css_units_percentage);
@@ -1520,19 +1542,19 @@ void litehtml::html_tag::parse_background()
 				}
 			} else
 			{
-				if(value_in_list(res[0], _t("left;right")))
+				if(value_in_list(res[0].c_str(), _t("left;right")))
 				{
 					m_bg.m_position.x.fromString(res[0], _t("left;right;center"));
 					m_bg.m_position.y.fromString(res[1], _t("top;bottom;center"));
-				} else if(value_in_list(res[0], _t("top;bottom")))
+				} else if(value_in_list(res[0].c_str(), _t("top;bottom")))
 				{
 					m_bg.m_position.x.fromString(res[1], _t("left;right;center"));
 					m_bg.m_position.y.fromString(res[0], _t("top;bottom;center"));
-				} else if(value_in_list(res[1], _t("left;right")))
+				} else if(value_in_list(res[1].c_str(), _t("left;right")))
 				{
 					m_bg.m_position.x.fromString(res[1], _t("left;right;center"));
 					m_bg.m_position.y.fromString(res[0], _t("top;bottom;center"));
-				}else if(value_in_list(res[1], _t("top;bottom")))
+				}else if(value_in_list(res[1].c_str(), _t("top;bottom")))
 				{
 					m_bg.m_position.x.fromString(res[0], _t("left;right;center"));
 					m_bg.m_position.y.fromString(res[1], _t("top;bottom;center"));
@@ -1588,7 +1610,7 @@ void litehtml::html_tag::parse_background()
 	if(str)
 	{
 		string_vector res;
-		split_string(str, res, _t(" \t"));
+		split_string(str.c_str(), res, _t(" \t"));
 		if(!res.empty())
 		{
 			m_bg.m_position.width.fromString(res[0], background_size_strings);
@@ -1781,7 +1803,9 @@ void litehtml::html_tag::get_inline_boxes( std::vector<position>& boxes )
 					{
 						if(m_padding.left + m_borders.left > 0)
 						{
-							position padding_box = (*sub_boxes.begin());
+							/* crust: indexed access -- begin()/iterators are
+							   outside what this pass can name here. */
+							position padding_box = sub_boxes[0];
 							padding_box.x		-= m_padding.left + m_borders.left + el->margin_left();
 							padding_box.width	= m_padding.left + m_borders.left + el->margin_left();
 							boxes.push_back(padding_box);
@@ -1790,7 +1814,11 @@ void litehtml::html_tag::get_inline_boxes( std::vector<position>& boxes )
 
 					sub_boxes.rbegin()->width += el->margin_right();
 
-					boxes.insert(boxes.end(), sub_boxes.begin(), sub_boxes.end());
+					/* crust: indexed copy rather than iterator insert. */
+					for(int bi = 0; bi < (int)sub_boxes.size(); bi++)
+					{
+						boxes.push_back(sub_boxes[bi]);
+					}
 				}
 			}
 		}
@@ -2266,7 +2294,8 @@ int litehtml::html_tag::place_element(const std::shared_ptr<litehtml::element> &
 
 	if(el->get_display() == display_inline)
 	{
-		return el->render_inline(shared_from_this(), max_width);
+		std::shared_ptr<litehtml::element> self = shared_from_this();
+		return el->render_inline(self, max_width);
 	}
 
 	element_position el_position = el->get_element_position();
@@ -2561,7 +2590,7 @@ bool litehtml::html_tag::set_class( const tchar_t* pclass, bool add )
 	string_vector classes;
 	bool changed = false;
 
-	split_string( pclass, classes, _t(" ") );
+	split_string( pclass.c_str(), classes, _t(" ") );
 
 	/* crust: both branches walked iterators -- `std::find`, `std::remove` and
 	   the two-iterator `erase` are all outside the subset, and `auto` cannot
@@ -3151,7 +3180,8 @@ void litehtml::html_tag::draw_list_marker( uint_ptr hdc, const position &pos )
 
 	if (m_list_style_type >= list_style_type_armenian)
 	{
-		auto marker_text = get_list_marker_text(lm.index);
+		/* crust: written type -- get_list_marker_text returns tstring. */
+		tstring marker_text = get_list_marker_text(lm.index);
 		lm.pos.height = ln_height;
 		if (marker_text.empty())
 		{
@@ -3159,9 +3189,12 @@ void litehtml::html_tag::draw_list_marker( uint_ptr hdc, const position &pos )
 		}
 		else
 		{
-			marker_text += _t(".");
+			/* crust: `+=` needs a named string; a `const tchar_t*` has no
+			   address as one. `append` takes the pointer directly. */
+			marker_text.append(_t("."));
 			int tw = get_document()->container()->text_width(marker_text.c_str(), lm.font);
-			auto text_pos = lm.pos;
+			/* crust: written type -- lm.pos is a position. */
+			position text_pos = lm.pos;
 			text_pos.move_to(text_pos.right() - tw, text_pos.y);
 			text_pos.width = tw;
 			get_document()->container()->draw_text(hdc, marker_text.c_str(), lm.font, lm.color, text_pos);
@@ -3603,7 +3636,7 @@ void litehtml::html_tag::parse_nth_child_params( const tstring& param, int &num,
 	} else
 	{
 		string_vector tokens;
-		split_string(param, tokens, _t(" n"), _t("n"));
+		split_string(param.c_str(), tokens, _t(" n"), _t("n"));
 
 		tstring s_num;
 		tstring s_off;
@@ -3834,7 +3867,8 @@ std::shared_ptr<litehtml::element> litehtml::html_tag::get_element_before()
 		}
 	}
 	std::shared_ptr<litehtml::element> el = std::make_shared<el_before>(get_document());
-	el->parent(shared_from_this());
+	std::shared_ptr<litehtml::element> self = shared_from_this();
+	el->parent(self);
 	m_children.insert(m_children.begin(), el);
 	return el;
 }
@@ -4312,7 +4346,8 @@ int litehtml::html_tag::render_box(int x, int y, int max_width, bool second_pass
 			m_margins.top = std::max(m_boxes.front()->top_margin(), m_margins.top);
 			if (m_margins.top != old_top)
 			{
-				update_floats(m_margins.top - old_top, shared_from_this());
+				std::shared_ptr<litehtml::element> self = shared_from_this();
+				update_floats(m_margins.top - old_top, self);
 			}
 		}
 		if (collapse_bottom_margin())

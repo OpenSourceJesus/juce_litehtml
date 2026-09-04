@@ -184,10 +184,15 @@ namespace litehtml
 		std::shared_ptr<media_query_list>	m_media_query;
 		tstring					m_baseurl;
 	public:
-		explicit css_selector(const std::shared_ptr<media_query_list>& media, const tstring& baseurl)
+		/* crust: baseurl is a C string -- callers pass `_t("")` / pointers;
+		   a temporary has no address for a reference parameter. */
+		explicit css_selector(const std::shared_ptr<media_query_list>& media, const tchar_t* baseurl)
 		{
 			m_media_query	= media;
-			m_baseurl		= baseurl;
+			if(baseurl)
+			{
+				m_baseurl = baseurl;
+			}
 			m_combinator	= combinator_descendant;
 			m_order			= 0;
 		}
