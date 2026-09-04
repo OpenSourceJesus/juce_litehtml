@@ -47,29 +47,41 @@ litehtml::tstring::size_type litehtml::find_close_bracket(const tstring &s, tstr
 	return tstring::npos;
 }
 
-int litehtml::value_index( const tstring& val, const tstring& strings, int defValue, tchar_t delim )
+int litehtml::value_index( const tchar_t* val, const tchar_t* strings, int defValue, tchar_t delim )
 {
-	if(val.empty() || strings.empty() || !delim)
+	/* crust: bind pointer args to named strings once -- see split_string. */
+	tstring val_s;
+	if(val)
+	{
+		val_s = val;
+	}
+	tstring strings_s;
+	if(strings)
+	{
+		strings_s = strings;
+	}
+
+	if(val_s.empty() || strings_s.empty() || !delim)
 	{
 		return defValue;
 	}
 
 	int idx = 0;
 	tstring::size_type delim_start	= 0;
-	tstring::size_type delim_end	= strings.find(delim, delim_start);
+	tstring::size_type delim_end	= strings_s.find(delim, delim_start);
 	tstring::size_type item_len;
 	while(true)
 	{
 		if(delim_end == tstring::npos)
 		{
-			item_len = strings.length() - delim_start;
+			item_len = strings_s.length() - delim_start;
 		} else
 		{
 			item_len = delim_end - delim_start;
 		}
-		if(item_len == val.length())
+		if(item_len == val_s.length())
 		{
-			if(val == strings.substr(delim_start, item_len))
+			if(val_s == strings_s.substr(delim_start, item_len))
 			{
 				return idx;
 			}
@@ -78,13 +90,13 @@ int litehtml::value_index( const tstring& val, const tstring& strings, int defVa
 		delim_start = delim_end;
 		if(delim_start == tstring::npos) break;
 		delim_start++;
-		if(delim_start == strings.length()) break;
-		delim_end = strings.find(delim, delim_start);
+		if(delim_start == strings_s.length()) break;
+		delim_end = strings_s.find(delim, delim_start);
 	}
 	return defValue;
 }
 
-bool litehtml::value_in_list( const tstring& val, const tstring& strings, tchar_t delim )
+bool litehtml::value_in_list( const tchar_t* val, const tchar_t* strings, tchar_t delim )
 {
 	int idx = value_index(val, strings, -1, delim);
 	if(idx >= 0)
@@ -94,43 +106,53 @@ bool litehtml::value_in_list( const tstring& val, const tstring& strings, tchar_
 	return false;
 }
 
-void litehtml::split_string(const tstring& str, string_vector& tokens, const tstring& delims, const tstring& delims_preserve, const tstring& quote)
+void litehtml::split_string(const tchar_t* str, string_vector& tokens, const tchar_t* delims, const tchar_t* delims_preserve, const tchar_t* quote)
 {
-	if(str.empty() || (delims.empty() && delims_preserve.empty()))
+	/* crust: all string args are C pointers -- bind once. */
+	tstring str_s;
+	if(str)
+	{
+		str_s = str;
+	}
+	tstring delims_s = delims;
+	tstring delims_preserve_s = delims_preserve;
+	tstring quote_s = quote;
+
+	if(str_s.empty() || (delims_s.empty() && delims_preserve_s.empty()))
 	{
 		return;
 	}
 
 	/* crust: string `operator+` is not in the subset; append instead. */
 	tstring all_delims;
-	all_delims.append(delims.c_str());
-	all_delims.append(delims_preserve.c_str());
-	all_delims.append(quote.c_str());
+	all_delims.append(delims_s.c_str());
+	all_delims.append(delims_preserve_s.c_str());
+	all_delims.append(quote_s.c_str());
 
 	tstring::size_type token_start	= 0;
-	tstring::size_type token_end	= str.find_first_of(all_delims, token_start);
+	tstring::size_type token_end	= str_s.find_first_of(all_delims, token_start);
 	tstring::size_type token_len;
 	tstring token;
 	while(true)
 	{
-		while( token_end != tstring::npos && quote.find_first_of(str[token_end]) != tstring::npos )
+		while( token_end != tstring::npos && quote_s.find_first_of(str_s[token_end]) != tstring::npos )
 		{
-			if(str[token_end] == _t('('))
+			if(str_s[token_end] == _t('('))
 			{
 				token_end = find_close_bracket(str, token_end, _t('('), _t(')'));
-			} else if(str[token_end] == _t('['))
+			} else if(str_s[token_end] == _t('['))
 			{
 				token_end = find_close_bracket(str, token_end, _t('['), _t(']'));
-			} else if(str[token_end] == _t('{'))
+			} else if(str_s[token_end] == _t('{'))
 			{
 				token_end = find_close_bracket(str, token_end, _t('{'), _t('}'));
 			} else
 			{
-				token_end = str.find_first_of(str[token_end], token_end + 1);
+				token_end = str_s.find_first_of(str_s[token_end], token_end + 1);
 			}
 			if(token_end != tstring::npos)
 			{
-				token_end = str.find_first_of(all_delims, token_end + 1);
+				token_end = str_s.find_first_of(all_delims, token_end + 1);
 			}
 		}
 
@@ -142,32 +164,38 @@ void litehtml::split_string(const tstring& str, string_vector& tokens, const tst
 			token_len = token_end - token_start;
 		}
 
-		token = str.substr(token_start, token_len);
+		token = str_s.substr(token_start, token_len);
 		if(!token.empty())
 		{
 			tokens.push_back( token );
 		}
-		if(token_end != tstring::npos && !delims_preserve.empty() && delims_preserve.find_first_of(str[token_end]) != tstring::npos)
+		if(token_end != tstring::npos && !delims_preserve_s.empty() && delims_preserve_s.find_first_of(str_s[token_end]) != tstring::npos)
 		{
-			tokens.push_back( str.substr(token_end, 1) );
+			/* crust: bind the call result before the reference parameter.
+			   `push_back` takes `const T &`, and a call result has no
+			   address. */
+			tstring delim_tok = str_s.substr(token_end, 1);
+			tokens.push_back( delim_tok );
 		}
 
 		token_start = token_end;
 		if(token_start == tstring::npos) break;
 		token_start++;
-		if(token_start == str.length()) break;
-		token_end = str.find_first_of(all_delims, token_start);
+		if(token_start == str_s.length()) break;
+		token_end = str_s.find_first_of(all_delims, token_start);
 	}
 }
 
-void litehtml::join_string(tstring& str, const string_vector& tokens, const tstring& delims)
+void litehtml::join_string(tstring& str, const string_vector& tokens, const tchar_t* delims)
 {
+	/* crust: delims is a C string -- see split_string. */
+	tstring delims_s = delims;
 	tstringstream ss;
 	for(size_t i=0; i<tokens.size(); ++i)
 	{
 		if(i != 0)
 		{
-			ss << delims;
+			ss << delims_s;
 		}
 		ss << tokens[i];
 	}
@@ -225,7 +253,10 @@ void litehtml::document_container::split_text_parts(const char* text, string_vec
 				   wchar_to_utf8 by value, and a method call on a by-value
 				   result has no address to take. */
 				litehtml::wchar_to_utf8 piece(str.c_str());
-				parts.push_back(piece.c_str());
+				/* crust: bind c_str into a named string before push_back --
+				   `const char*` has no address as a string reference. */
+				tstring part = piece.c_str();
+				parts.push_back(part);
 				kinds.push_back(0);
 				str.clear();
 			}
@@ -234,7 +265,10 @@ void litehtml::document_container::split_text_parts(const char* text, string_vec
 			   wchar_to_utf8 by value, and a method call on a by-value
 			   result has no address to take. */
 			litehtml::wchar_to_utf8 piece(str.c_str());
-			parts.push_back(piece.c_str());
+			/* crust: bind c_str into a named string before push_back --
+			   `const char*` has no address as a string reference. */
+			tstring part = piece.c_str();
+			parts.push_back(part);
 			kinds.push_back(1);
 			str.clear();
 		}
@@ -247,7 +281,10 @@ void litehtml::document_container::split_text_parts(const char* text, string_vec
 				   wchar_to_utf8 by value, and a method call on a by-value
 				   result has no address to take. */
 				litehtml::wchar_to_utf8 piece(str.c_str());
-				parts.push_back(piece.c_str());
+				/* crust: bind c_str into a named string before push_back --
+				   `const char*` has no address as a string reference. */
+				tstring part = piece.c_str();
+				parts.push_back(part);
 				kinds.push_back(0);
 				str.clear();
 			}
@@ -256,7 +293,10 @@ void litehtml::document_container::split_text_parts(const char* text, string_vec
 			   wchar_to_utf8 by value, and a method call on a by-value
 			   result has no address to take. */
 			litehtml::wchar_to_utf8 piece(str.c_str());
-			parts.push_back(piece.c_str());
+			/* crust: bind c_str into a named string before push_back --
+			   `const char*` has no address as a string reference. */
+			tstring part = piece.c_str();
+			parts.push_back(part);
 			kinds.push_back(0);
 			str.clear();
 		}
@@ -271,7 +311,10 @@ void litehtml::document_container::split_text_parts(const char* text, string_vec
 		   wchar_to_utf8 by value, and a method call on a by-value
 		   result has no address to take. */
 		litehtml::wchar_to_utf8 piece(str.c_str());
-		parts.push_back(piece.c_str());
+		/* crust: bind c_str into a named string before push_back --
+		   `const char*` has no address as a string reference. */
+		tstring part = piece.c_str();
+		parts.push_back(part);
 		kinds.push_back(0);
 	}
 }

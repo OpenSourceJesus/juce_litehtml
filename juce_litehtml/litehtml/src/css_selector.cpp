@@ -16,7 +16,7 @@ void litehtml::css_element_selector::parse( const tstring& txt )
 
 			tstring::size_type pos = txt.find_first_of(_t(".#[:"), el_end + 1);
 			attribute.val		= txt.substr(el_end + 1, pos - el_end - 1);
-			split_string( attribute.val, attribute.class_val, _t(" ") );
+			split_string( attribute.val.c_str(), attribute.class_val, _t(" ") );
 			attribute.condition	= select_equal;
 			attribute.attribute	= _t("class");
 			m_attrs.push_back(attribute);
@@ -158,7 +158,7 @@ bool litehtml::css_selector::parse( const tstring& text )
 		return false;
 	}
 	string_vector tokens;
-	split_string(text, tokens, _t(""), _t(" \t>+~"), _t("(["));
+	split_string(text.c_str(), tokens, _t(""), _t(" \t>+~"), _t("(["));
 
 	if(tokens.empty())
 	{
@@ -179,9 +179,10 @@ bool litehtml::css_selector::parse( const tstring& text )
 		tokens.pop_back();
 	}
 
+	/* crust: append named strings rather than += of a range element. */
 	for(const tstring & token : tokens)
 	{
-		left += token;
+		left.append(token.c_str());
 	}
 
 	trim(left);
@@ -214,7 +215,9 @@ bool litehtml::css_selector::parse( const tstring& text )
 
 	if(!left.empty())
 	{
-		m_left = std::make_shared<css_selector>(std::shared_ptr<media_query_list>(nullptr), _t(""));
+		/* crust: empty media shared_ptr bound before the reference parameter. */
+		std::shared_ptr<media_query_list> no_media;
+		m_left = std::make_shared<css_selector>(no_media, _t(""));
 		if(!m_left->parse(left))
 		{
 			return false;

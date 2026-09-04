@@ -80,7 +80,11 @@ tstring url_path_resolve(const tstring& base, const tstring& path)
         return path;
     }
 
-    return url_path_append(url_path_directory_name(base), path);
+    /* crust: bind the call result before the reference parameter. A call
+       result has no address, and this lowering passes a reference as a
+       pointer. */
+    tstring dir = url_path_directory_name(base);
+    return url_path_append(dir, path);
 }
 
 } // namespace litehtml

@@ -84,11 +84,18 @@ namespace litehtml
 
 	void trim(tstring &s);
 	void lcase(tstring &s);
-	int	 value_index(const tstring& val, const tstring& strings, int defValue = -1, tchar_t delim = _t(';'));
-	bool value_in_list(const tstring& val, const tstring& strings, tchar_t delim = _t(';'));
+	/* crust: both args are C strings rather than `const tstring &`.
+	   Callers pass `_t("...")` / `get_style_property` results / `.c_str()`;
+	   a temporary has no address for a reference parameter under this
+	   lowering. */
+	int	 value_index(const tchar_t* val, const tchar_t* strings, int defValue = -1, tchar_t delim = _t(';'));
+	bool value_in_list(const tchar_t* val, const tchar_t* strings, tchar_t delim = _t(';'));
 	tstring::size_type find_close_bracket(const tstring &s, tstring::size_type off, tchar_t open_b = _t('('), tchar_t close_b = _t(')'));
-	void split_string(const tstring& str, string_vector& tokens, const tstring& delims, const tstring& delims_preserve = _t(""), const tstring& quote = _t("\""));
-	void join_string(tstring& str, const string_vector& tokens, const tstring& delims);
+	/* crust: all string args are C pointers rather than `const tstring &`.
+	   Callers pass `_t("...")` / `.c_str()` / named pointers; a temporary
+	   has no address for a reference parameter under this lowering. */
+	void split_string(const tchar_t* str, string_vector& tokens, const tchar_t* delims, const tchar_t* delims_preserve = _t(""), const tchar_t* quote = _t("\""));
+	void join_string(tstring& str, const string_vector& tokens, const tchar_t* delims);
     double t_strtod(const tchar_t* string, tchar_t** endPtr);
 
 	int t_strcasecmp(const tchar_t *s1, const tchar_t *s2);
