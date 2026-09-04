@@ -338,7 +338,7 @@ litehtml::uint_ptr litehtml::document::add_font( const tchar_t* name, int size, 
 		if(decoration)
 		{
 			std::vector<tstring> tokens;
-			split_string(decoration.c_str(), tokens, _t(" "));
+			split_string(decoration, tokens, _t(" "));
 			for(auto & token : tokens)
 			{
 				if(!t_strcasecmp(token.c_str(), _t("underline")))
@@ -894,9 +894,9 @@ void litehtml::document::create_node(void* gnode, elements_vector& elements, boo
 				   wchar_to_utf8 by value, and a method call on a by-value
 				   result has no object to call it on. */
 				litehtml::wchar_to_utf8 whole(str_in);
-				/* crust: bind make_shared / shared_from_this before push_back. */
-				std::shared_ptr<litehtml::element> self = shared_from_this();
-				std::shared_ptr<litehtml::element> el = std::make_shared<el_text>(whole.c_str(), self);
+				/* crust: bind doc and make_shared before push_back. */
+				std::shared_ptr<litehtml::document> doc = shared_from_this();
+				std::shared_ptr<litehtml::element> el = std::make_shared<el_text>(whole.c_str(), doc);
 				elements.push_back(el);
 			}
 			else
@@ -908,16 +908,16 @@ void litehtml::document::create_node(void* gnode, elements_vector& elements, boo
 				m_container->split_text_parts(node->v.text.text, parts, kinds);
 				for (int pi = 0; pi < (int)parts.size(); pi++)
 				{
-					/* crust: bind before push_back reference parameter. */
-					std::shared_ptr<litehtml::element> self = shared_from_this();
+					/* crust: bind doc and make_shared before push_back. */
+					std::shared_ptr<litehtml::document> doc = shared_from_this();
 					if (kinds[pi] == 0)
 					{
-						std::shared_ptr<litehtml::element> el = std::make_shared<el_text>(parts[pi].c_str(), self);
+						std::shared_ptr<litehtml::element> el = std::make_shared<el_text>(parts[pi].c_str(), doc);
 						elements.push_back(el);
 					}
 					else
 					{
-						std::shared_ptr<litehtml::element> el = std::make_shared<el_space>(parts[pi].c_str(), self);
+						std::shared_ptr<litehtml::element> el = std::make_shared<el_space>(parts[pi].c_str(), doc);
 						elements.push_back(el);
 					}
 				}
@@ -945,9 +945,9 @@ void litehtml::document::create_node(void* gnode, elements_vector& elements, boo
 			{
 				/* crust: substr returns a string by value; bind it first. */
 				tstring one_char = str.substr(i, 1);
-				/* crust: bind before push_back reference parameter. */
-				std::shared_ptr<litehtml::element> self = shared_from_this();
-				std::shared_ptr<litehtml::element> el = std::make_shared<el_space>(one_char.c_str(), self);
+				/* crust: bind doc and make_shared before push_back. */
+				std::shared_ptr<litehtml::document> doc = shared_from_this();
+				std::shared_ptr<litehtml::element> el = std::make_shared<el_space>(one_char.c_str(), doc);
 				elements.push_back(el);
 			}
 		}

@@ -835,45 +835,42 @@ int litehtml::html_tag::select_element(const css_element_selector& selector, boo
 
 				int pseudo_selector = value_index(selector_name.c_str(), pseudo_class_strings);
 
+				/* crust: one named self for the whole switch -- a declaration
+				   in a case without braces is ill-formed in C++. */
+				std::shared_ptr<litehtml::element> self = shared_from_this();
 				switch(pseudo_selector)
 				{
 				case pseudo_class_only_child:
-					std::shared_ptr<litehtml::element> self = shared_from_this();
 					if (!el_parent || !el_parent->is_only_child(self, false))
 					{
 						return select_no_match;
 					}
 					break;
 				case pseudo_class_only_of_type:
-					std::shared_ptr<litehtml::element> self = shared_from_this();
 					if (!el_parent || !el_parent->is_only_child(self, true))
 					{
 						return select_no_match;
 					}
 					break;
 				case pseudo_class_first_child:
-					std::shared_ptr<litehtml::element> self = shared_from_this();
 					if (!el_parent || !el_parent->is_nth_child(self, 0, 1, false))
 					{
 						return select_no_match;
 					}
 					break;
 				case pseudo_class_first_of_type:
-					std::shared_ptr<litehtml::element> self = shared_from_this();
 					if (!el_parent || !el_parent->is_nth_child(self, 0, 1, true))
 					{
 						return select_no_match;
 					}
 					break;
 				case pseudo_class_last_child:
-					std::shared_ptr<litehtml::element> self = shared_from_this();
 					if (!el_parent || !el_parent->is_nth_last_child(self, 0, 1, false))
 					{
 						return select_no_match;
 					}
 					break;
 				case pseudo_class_last_of_type:
-					std::shared_ptr<litehtml::element> self = shared_from_this();
 					if (!el_parent || !el_parent->is_nth_last_child(self, 0, 1, true))
 					{
 						return select_no_match;
@@ -894,28 +891,24 @@ int litehtml::html_tag::select_element(const css_element_selector& selector, boo
 						switch(pseudo_selector)
 						{
 						case pseudo_class_nth_child:
-							std::shared_ptr<litehtml::element> self = shared_from_this();
 							if (!el_parent->is_nth_child(self, num, off, false))
 							{
 								return select_no_match;
 							}
 							break;
 						case pseudo_class_nth_of_type:
-							std::shared_ptr<litehtml::element> self = shared_from_this();
 							if (!el_parent->is_nth_child(self, num, off, true))
 							{
 								return select_no_match;
 							}
 							break;
 						case pseudo_class_nth_last_child:
-							std::shared_ptr<litehtml::element> self = shared_from_this();
 							if (!el_parent->is_nth_last_child(self, num, off, false))
 							{
 								return select_no_match;
 							}
 							break;
 						case pseudo_class_nth_last_of_type:
-							std::shared_ptr<litehtml::element> self = shared_from_this();
 							if (!el_parent->is_nth_last_child(self, num, off, true))
 							{
 								return select_no_match;
@@ -1522,7 +1515,7 @@ void litehtml::html_tag::parse_background()
 	if(str)
 	{
 		string_vector res;
-		split_string(str.c_str(), res, _t(" \t"));
+		split_string(str, res, _t(" \t"));
 		if(!res.empty())
 		{
 			if(res.size() == 1)
@@ -1610,7 +1603,7 @@ void litehtml::html_tag::parse_background()
 	if(str)
 	{
 		string_vector res;
-		split_string(str.c_str(), res, _t(" \t"));
+		split_string(str, res, _t(" \t"));
 		if(!res.empty())
 		{
 			m_bg.m_position.width.fromString(res[0], background_size_strings);
@@ -2590,7 +2583,7 @@ bool litehtml::html_tag::set_class( const tchar_t* pclass, bool add )
 	string_vector classes;
 	bool changed = false;
 
-	split_string( pclass.c_str(), classes, _t(" ") );
+	split_string( pclass, classes, _t(" ") );
 
 	/* crust: both branches walked iterators -- `std::find`, `std::remove` and
 	   the two-iterator `erase` are all outside the subset, and `auto` cannot

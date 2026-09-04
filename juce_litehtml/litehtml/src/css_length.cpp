@@ -11,7 +11,7 @@ void litehtml::css_length::fromString( const tstring& str, const tstring& predef
 		return;
 	}
 
-	int predef = value_index(str, predefs, -1);
+	int predef = value_index(str.c_str(), predefs.c_str(), -1);
 	if(predef >= 0)
 	{
 		m_is_predefined = true;

@@ -39,7 +39,7 @@ void litehtml::style::parse_property( const tstring& txt, const tchar_t* baseurl
 		if(!name.empty() && !val.empty())
 		{
 			string_vector vals;
-			split_string(val, vals, _t("!"));
+			split_string(val.c_str(), vals, _t("!"));
 			if(vals.size() == 1)
 			{
 				add_property(name.c_str(), val.c_str(), baseurl, false, el);
@@ -167,7 +167,7 @@ void litehtml::style::add_property( const tchar_t* name, const tchar_t* _val, co
 	// Add baseurl for background image 
 	if(	!t_strcmp(name, _t("background-image")))
 	{
-		add_parsed_property(name, val, important);
+		add_parsed_property(name, val.c_str(), important);
 		if(baseurl)
 		{
 			add_parsed_property(_t("background-image-baseurl"), baseurl, important);
@@ -178,7 +178,7 @@ void litehtml::style::add_property( const tchar_t* name, const tchar_t* _val, co
 	if(	!t_strcmp(name, _t("border-spacing")))
 	{
 		string_vector tokens;
-		split_string(val, tokens, _t(" "));
+		split_string(val.c_str(), tokens, _t(" "));
 		if(tokens.size() == 1)
 		{
 			add_parsed_property(_t("-litehtml-border-spacing-x"), tokens[0].c_str(), important);
@@ -195,7 +195,7 @@ void litehtml::style::add_property( const tchar_t* name, const tchar_t* _val, co
 	if(	!t_strcmp(name, _t("border")))
 	{
 		string_vector tokens;
-		split_string(val, tokens, _t(" "), _t(""), _t("("));
+		split_string(val.c_str(), tokens, _t(" "), _t(""), _t("("));
 		int idx;
 		tstring str;
 		for(const auto& token : tokens)
@@ -232,7 +232,7 @@ void litehtml::style::add_property( const tchar_t* name, const tchar_t* _val, co
 		!t_strcmp(name, _t("border-bottom")) )
 	{
 		string_vector tokens;
-		split_string(val, tokens, _t(" "), _t(""), _t("("));
+		split_string(val.c_str(), tokens, _t(" "), _t(""), _t("("));
 		int idx;
 		tstring str;
 		for(const auto& token : tokens)
@@ -265,7 +265,7 @@ void litehtml::style::add_property( const tchar_t* name, const tchar_t* _val, co
 	if(!t_strcmp(name, _t("border-bottom-left-radius")))
 	{
 		string_vector tokens;
-		split_string(val, tokens, _t(" "));
+		split_string(val.c_str(), tokens, _t(" "));
 		if(tokens.size() >= 2)
 		{
 			add_property(_t("border-bottom-left-radius-x"), tokens[0].c_str(), baseurl, important, el);
@@ -279,7 +279,7 @@ void litehtml::style::add_property( const tchar_t* name, const tchar_t* _val, co
 	} else if(!t_strcmp(name, _t("border-bottom-right-radius")))
 	{
 		string_vector tokens;
-		split_string(val, tokens, _t(" "));
+		split_string(val.c_str(), tokens, _t(" "));
 		if(tokens.size() >= 2)
 		{
 			add_property(_t("border-bottom-right-radius-x"), tokens[0].c_str(), baseurl, important, el);
@@ -293,7 +293,7 @@ void litehtml::style::add_property( const tchar_t* name, const tchar_t* _val, co
 	} else if(!t_strcmp(name, _t("border-top-right-radius")))
 	{
 		string_vector tokens;
-		split_string(val, tokens, _t(" "));
+		split_string(val.c_str(), tokens, _t(" "));
 		if(tokens.size() >= 2)
 		{
 			add_property(_t("border-top-right-radius-x"), tokens[0].c_str(), baseurl, important, el);
@@ -307,7 +307,7 @@ void litehtml::style::add_property( const tchar_t* name, const tchar_t* _val, co
 	} else if(!t_strcmp(name, _t("border-top-left-radius")))
 	{
 		string_vector tokens;
-		split_string(val, tokens, _t(" "));
+		split_string(val.c_str(), tokens, _t(" "));
 		if(tokens.size() >= 2)
 		{
 			add_property(_t("border-top-left-radius-x"), tokens[0].c_str(), baseurl, important, el);
@@ -324,7 +324,7 @@ void litehtml::style::add_property( const tchar_t* name, const tchar_t* _val, co
 	if(!t_strcmp(name, _t("border-radius")))
 	{
 		string_vector tokens;
-		split_string(val, tokens, _t("/"));
+		split_string(val.c_str(), tokens, _t("/"));
 		if(tokens.size() == 1)
 		{
 			add_property(_t("border-radius-x"), tokens[0].c_str(), baseurl, important, el);
@@ -337,7 +337,7 @@ void litehtml::style::add_property( const tchar_t* name, const tchar_t* _val, co
 	} else if(!t_strcmp(name, _t("border-radius-x")))
 	{
 		string_vector tokens;
-		split_string(val, tokens, _t(" "));
+		split_string(val.c_str(), tokens, _t(" "));
 		if(tokens.size() == 1)
 		{
 			add_property(_t("border-top-left-radius-x"),		tokens[0].c_str(), baseurl, important, el);
@@ -366,7 +366,7 @@ void litehtml::style::add_property( const tchar_t* name, const tchar_t* _val, co
 	} else if(!t_strcmp(name, _t("border-radius-y")))
 	{
 		string_vector tokens;
-		split_string(val, tokens, _t(" "));
+		split_string(val.c_str(), tokens, _t(" "));
 		if(tokens.size() == 1)
 		{
 			add_property(_t("border-top-left-radius-y"),		tokens[0].c_str(), baseurl, important, el);
@@ -404,7 +404,7 @@ void litehtml::style::add_property( const tchar_t* name, const tchar_t* _val, co
 		add_parsed_property(_t("list-style-image-baseurl"),	_t(""),			important);
 
 		string_vector tokens;
-		split_string(val, tokens, _t(" "), _t(""), _t("("));
+		split_string(val.c_str(), tokens, _t(" "), _t(""), _t("("));
 		for(const auto& token : tokens)
 		{
 			int idx = value_index(token.c_str(), list_style_type_strings, -1);
@@ -432,7 +432,7 @@ void litehtml::style::add_property( const tchar_t* name, const tchar_t* _val, co
 	// Add baseurl for background image 
 	if(	!t_strcmp(name, _t("list-style-image")))
 	{
-		add_parsed_property(name, val, important);
+		add_parsed_property(name, val.c_str(), important);
 		if(baseurl)
 		{
 			add_parsed_property(_t("list-style-image-baseurl"), baseurl, important);
@@ -442,7 +442,7 @@ void litehtml::style::add_property( const tchar_t* name, const tchar_t* _val, co
 	// Parse background shorthand properties 
 	if(!t_strcmp(name, _t("background")))
 	{
-		parse_short_background(val, baseurl, important);
+		parse_short_background(val.c_str(), baseurl, important);
 
 	} else 
 		
@@ -451,7 +451,7 @@ void litehtml::style::add_property( const tchar_t* name, const tchar_t* _val, co
 	{
 		/* crust: build side names with append; pass C strings. */
 		string_vector tokens;
-		split_string(val, tokens, _t(" "));
+		split_string(val.c_str(), tokens, _t(" "));
 		tstring p_top = name; p_top.append(_t("-top"));
 		tstring p_right = name; p_right.append(_t("-right"));
 		tstring p_bottom = name; p_bottom.append(_t("-bottom"));
@@ -490,7 +490,7 @@ void litehtml::style::add_property( const tchar_t* name, const tchar_t* _val, co
 		!t_strcmp(name, _t("border-top"))  || 
 		!t_strcmp(name, _t("border-bottom")))
 	{
-		parse_short_border(name, val, important);
+		parse_short_border(name, val.c_str(), important);
 	} else 
 		
 	// Parse border-width/style/color shorthand properties 
@@ -502,7 +502,7 @@ void litehtml::style::add_property( const tchar_t* name, const tchar_t* _val, co
 		split_string(name, nametokens, _t("-"));
 
 		string_vector tokens;
-		split_string(val, tokens, _t(" "));
+		split_string(val.c_str(), tokens, _t(" "));
 		/* crust: build corner names with append; pass C strings. */
 		if(tokens.size() >= 4)
 		{
@@ -547,7 +547,7 @@ void litehtml::style::add_property( const tchar_t* name, const tchar_t* _val, co
 		}
 	} else
 	{
-		add_parsed_property(name, val, important);
+		add_parsed_property(name, val.c_str(), important);
 	}
 }
 
