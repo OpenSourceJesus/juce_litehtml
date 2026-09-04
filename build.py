@@ -766,7 +766,11 @@ def _crust_diagnostic(proc) -> str:
 def crust_lower_command(crust: Path, src: Path, out_c: Path,
                         include_dirs, defines) -> list:
     cmd = [sys.executable, str(crust / "tools" / "cpprust.py"),
-           str(src), "-o", str(out_c)]
+           str(src), "-o", str(out_c),
+           # Pin --no-clang: a third of translation time was the clang
+           # auto oracle, and litehtml's crust-compat sources write types
+           # out so the fallback is not needed.
+           "--no-clang"]
     for d in include_dirs:
         cmd += ["--incdir", str(d)]
     for name in defines:
