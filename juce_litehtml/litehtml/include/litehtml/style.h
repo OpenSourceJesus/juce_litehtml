@@ -66,7 +66,9 @@ namespace litehtml
 		{
 			if(name)
 			{
-				auto f = m_properties.find(name);
+				/* crust: map find needs a named string key. */
+				tstring key = name;
+				props_map::const_iterator f = m_properties.find(key);
 				if(f != m_properties.end())
 				{
 					return f->second.m_value.c_str();
@@ -84,16 +86,17 @@ namespace litehtml
 	private:
 		void parse_property(const tstring& txt, const tchar_t* baseurl, const element* el);
 		void parse(const tchar_t* txt, const tchar_t* baseurl, const element* el);
-		void parse_short_border(const tstring& prefix, const tstring& val, bool important);
-		void parse_short_background(const tstring& val, const tchar_t* baseurl, bool important);
-		void parse_short_font(const tstring& val, bool important);
+		void parse_short_border(const tchar_t* prefix, const tchar_t* val, bool important);
+		void parse_short_background(const tchar_t* val, const tchar_t* baseurl, bool important);
+		void parse_short_font(const tchar_t* val, bool important);
 		// Returns false when a var() reference could not be resolved and had
 		// no fallback. The declaration must then be dropped: leaving the
 		// literal text behind makes it parse as a colour, and an unparseable
 		// colour is opaque black.
 		static bool subst_vars(tstring& str, const element* el);
-		void add_parsed_property(const tstring& name, const tstring& val, bool important);
-		void remove_property(const tstring& name, bool important);
+		/* crust: C strings -- callers pass `_t("...")` / pointers. */
+		void add_parsed_property(const tchar_t* name, const tchar_t* val, bool important);
+		void remove_property(const tchar_t* name, bool important);
 	};
 }
 
