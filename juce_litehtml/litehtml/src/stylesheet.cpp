@@ -52,7 +52,15 @@ void litehtml::css::parse_stylesheet(const tchar_t* str, const tchar_t* baseurl,
 		}
 
 		tstring::size_type style_start	= text.find(_t('{'), pos);
-		tstring::size_type style_end	= text.find(_t('}'), pos);
+		/* Match the closing `}`, not the first `}` after the selector.
+		   Nested braces (and a `}` that appears earlier than the opening
+		   `{` cannot) used to truncate the declaration block and leave
+		   the rest of the stylesheet unparsed. */
+		tstring::size_type style_end	= tstring::npos;
+		if(style_start != tstring::npos)
+		{
+			style_end = find_close_bracket(text, style_start, _t('{'), _t('}'));
+		}
 		if(style_start != tstring::npos && style_end != tstring::npos)
 		{
 			/* crust: written type -- `auto` cannot deduce substr here
