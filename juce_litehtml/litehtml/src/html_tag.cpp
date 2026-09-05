@@ -332,11 +332,37 @@ void litehtml::html_tag::parse_styles(bool is_reparse)
 	init_font();
 	std::shared_ptr<document> doc = get_document();
 
-	m_el_position	= (element_position)	value_index(get_style_property(_t("position"),		false,	_t("static")),		element_position_strings,	element_position_fixed);
+	/* Unknown `position` keywords must not become `fixed`. `sticky` is not
+	   in element_position_strings; the old defValue was `fixed`, so every
+	   sticky bar was taken out of flow and painted as a full-width strip
+	   (Wikipedia). Treat sticky (and other unknowns) as static. */
+	{
+		const tchar_t* pos = get_style_property(_t("position"), false, _t("static"));
+		if(pos && !t_strcmp(pos, _t("sticky")))
+		{
+			pos = _t("static");
+		}
+		m_el_position = (element_position) value_index(pos, element_position_strings, element_position_static);
+	}
 	m_text_align	= (text_align)			value_index(get_style_property(_t("text-align"),	true,	_t("left")),		text_align_strings,			text_align_left);
 	m_overflow		= (overflow)			value_index(get_style_property(_t("overflow"),		false,	_t("visible")),		overflow_strings,			overflow_visible);
 	m_white_space	= (white_space)			value_index(get_style_property(_t("white-space"),	true,	_t("normal")),		white_space_strings,		white_space_normal);
-	m_display		= (style_display)		value_index(get_style_property(_t("display"),		false,	_t("inline")),		style_display_strings,		display_inline);
+	/* Map flex/grid to the closest supported display. Leaving them to the
+	   value_index default (`inline`) made flex chrome collapse into a
+	   run-on inline box. */
+	{
+		const tchar_t* disp = get_style_property(_t("display"), false, _t("inline"));
+		if(disp && (!t_strcmp(disp, _t("flex")) || !t_strcmp(disp, _t("grid"))
+			|| !t_strcmp(disp, _t("flow-root"))))
+		{
+			disp = _t("block");
+		}
+		else if(disp && (!t_strcmp(disp, _t("inline-flex")) || !t_strcmp(disp, _t("inline-grid"))))
+		{
+			disp = _t("inline-block");
+		}
+		m_display = (style_display) value_index(disp, style_display_strings, display_inline);
+	}
 	m_visibility	= (visibility)			value_index(get_style_property(_t("visibility"),	true,	_t("visible")),		visibility_strings,			visibility_visible);
 	m_box_sizing	= (box_sizing)			value_index(get_style_property(_t("box-sizing"),	false,	_t("content-box")),	box_sizing_strings,			box_sizing_content_box);
 
