@@ -347,21 +347,58 @@ void litehtml::html_tag::parse_styles(bool is_reparse)
 	m_text_align	= (text_align)			value_index(get_style_property(_t("text-align"),	true,	_t("left")),		text_align_strings,			text_align_left);
 	m_overflow		= (overflow)			value_index(get_style_property(_t("overflow"),		false,	_t("visible")),		overflow_strings,			overflow_visible);
 	m_white_space	= (white_space)			value_index(get_style_property(_t("white-space"),	true,	_t("normal")),		white_space_strings,		white_space_normal);
-	/* Map flex/grid to the closest supported display. Leaving them to the
-	   value_index default (`inline`) made flex chrome collapse into a
-	   run-on inline box. */
+	/* Unknown display values (flex/grid/…) used to fall through value_index
+	   to `inline`, collapsing chrome into run-on boxes. Map to the closest
+	   supported mode; real flex/grid layout is separate work.
+	   Flex-row children that would be `block` become `inline-block` so
+	   header/nav links sit on one line instead of stacking. */
+	bool flex_row_child = false;
+	bool flex_basis_column = false;
+	bool was_flex_container = false;
 	{
 		const tchar_t* disp = get_style_property(_t("display"), false, _t("inline"));
 		if(disp && (!t_strcmp(disp, _t("flex")) || !t_strcmp(disp, _t("grid"))
 			|| !t_strcmp(disp, _t("flow-root"))))
 		{
+			if(!t_strcmp(disp, _t("flex")))
+			{
+				was_flex_container = true;
+			}
 			disp = _t("block");
 		}
 		else if(disp && (!t_strcmp(disp, _t("inline-flex")) || !t_strcmp(disp, _t("inline-grid"))))
 		{
+			if(!t_strcmp(disp, _t("inline-flex")))
+			{
+				was_flex_container = true;
+			}
 			disp = _t("inline-block");
 		}
 		m_display = (style_display) value_index(disp, style_display_strings, display_inline);
+
+		/* ponytail: approximate flex-direction:row only; column stays stacked.
+		   Ceiling: no wrap/gap/grow; upgrade = real flex formatting context. */
+		std::shared_ptr<element> par = parent();
+		if(par && (m_display == display_block || m_display == display_list_item))
+		{
+			const tchar_t* pd = par->get_style_property(_t("display"), false, nullptr);
+			if(pd && (!t_strcmp(pd, _t("flex")) || !t_strcmp(pd, _t("inline-flex"))))
+			{
+				const tchar_t* fd = par->get_style_property(_t("flex-direction"), false, _t("row"));
+				if(!fd || t_strncmp(fd, _t("column"), 6) != 0)
+				{
+					m_display = display_inline_block;
+					flex_row_child = true;
+				}
+			}
+		}
+		/* Flex children with percentage flex-basis become floats (below).
+		   Without a BFC the flex→block parent collapses to height 0 and
+		   following content overlaps the columns. */
+		if(was_flex_container && m_overflow == overflow_visible)
+		{
+			m_overflow = overflow_hidden;
+		}
 	}
 	m_visibility	= (visibility)			value_index(get_style_property(_t("visibility"),	true,	_t("visible")),		visibility_strings,			visibility_visible);
 	m_box_sizing	= (box_sizing)			value_index(get_style_property(_t("box-sizing"),	false,	_t("content-box")),	box_sizing_strings,			box_sizing_content_box);
@@ -422,6 +459,65 @@ void litehtml::html_tag::parse_styles(bool is_reparse)
 	doc->cvt_units(m_css_width, m_font_size);
 	doc->cvt_units(m_css_height, m_font_size);
 
+	/* Flex shorthand `flex: 1 1 55%` is not a layout engine we have — but
+	   Wikipedia Main Page columns (#mp-left/#mp-right) size only via
+	   flex-basis. Map that percentage (or length) onto width so the
+	   inline-block/float approximation can sit side-by-side. */
+	if(flex_row_child && m_css_width.is_predefined())
+	{
+		const tchar_t* basis = get_style_property(_t("flex-basis"), false, nullptr);
+		tstring basis_storage;
+		if(!basis || !basis[0] || !t_strcmp(basis, _t("auto")))
+		{
+			const tchar_t* flex = get_style_property(_t("flex"), false, nullptr);
+			if(flex && flex[0])
+			{
+				string_vector ftoks;
+				split_string(flex, ftoks, _t(" \t"));
+				for(const tstring& tok : ftoks)
+				{
+					if(tok.empty() || tok == _t("none") || tok == _t("auto")
+						|| tok == _t("content"))
+					{
+						continue;
+					}
+					/* Prefer a length/percentage token over bare grow/shrink numbers. */
+					bool has_unit = false;
+					for(size_t i = 0; i < tok.length(); i++)
+					{
+						tchar_t c = tok[i];
+						if(c == _t('%') || (c >= _t('a') && c <= _t('z'))
+							|| (c >= _t('A') && c <= _t('Z')))
+						{
+							has_unit = true;
+							break;
+						}
+					}
+					if(has_unit)
+					{
+						basis_storage = tok;
+						basis = basis_storage.c_str();
+						break;
+					}
+				}
+			}
+		}
+		if(basis && basis[0] && t_strcmp(basis, _t("auto")) != 0
+			&& t_strcmp(basis, _t("content")) != 0)
+		{
+			m_css_width.fromString(basis);
+			doc->cvt_units(m_css_width, m_font_size);
+			m_box_sizing = box_sizing_border_box;
+			m_vertical_align = va_top;
+			/* Float left so percentage columns share a line; inline-block
+			   + 55% + 45% + margins wraps. Clear horiz margins that would
+			   push the pair over 100% (done after margin props are read). */
+			m_float = float_left;
+			m_display = display_block;
+			flex_basis_column = true;
+		}
+	}
+
 	m_css_min_width.fromString(		get_style_property(_t("min-width"),		false,	_t("0")));
 	m_css_min_height.fromString(	get_style_property(_t("min-height"),	false,	_t("0")));
 
@@ -445,6 +541,12 @@ void litehtml::html_tag::parse_styles(bool is_reparse)
 	m_css_margins.right.fromString(		get_style_property(_t("margin-right"),		false,	_t("0")), _t("auto"));
 	m_css_margins.top.fromString(		get_style_property(_t("margin-top"),		false,	_t("0")), _t("auto"));
 	m_css_margins.bottom.fromString(	get_style_property(_t("margin-bottom"),		false,	_t("0")), _t("auto"));
+
+	if(flex_basis_column)
+	{
+		m_css_margins.left.fromString(_t("0"), _t("auto"));
+		m_css_margins.right.fromString(_t("0"), _t("auto"));
+	}
 
 	m_css_padding.left.fromString(		get_style_property(_t("padding-left"),		false,	_t("0")), _t(""));
 	m_css_padding.right.fromString(		get_style_property(_t("padding-right"),		false,	_t("0")), _t(""));
@@ -1535,6 +1637,22 @@ void litehtml::html_tag::parse_background()
 {
 	// parse background-color
 	m_bg.m_color		= get_color(_t("background-color"), false, web_color(0, 0, 0, 0));
+
+	/* Masked icons (Vector/Codex) set background-color + mask-image.
+	   Without mask support the colour paints as a solid square. Drop the
+	   fill when a mask is declared — better empty than a black blob.
+	   ponytail: no real mask compositing; upgrade = implement mask-image. */
+	{
+		const tchar_t* mask = get_style_property(_t("mask-image"), false, nullptr);
+		if(!mask || !mask[0])
+		{
+			mask = get_style_property(_t("-webkit-mask-image"), false, nullptr);
+		}
+		if(mask && mask[0] && t_strcmp(mask, _t("none")) != 0)
+		{
+			m_bg.m_color = web_color(0, 0, 0, 0);
+		}
+	}
 
 	// parse background-position
 	const tchar_t* str = get_style_property(_t("background-position"), false, _t("0% 0%"));

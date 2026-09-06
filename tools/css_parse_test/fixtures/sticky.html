@@ -1,0 +1,9 @@
+<!DOCTYPE html><html><head><style>
+/* sticky must not become fixed (full-viewport overlay). Map to static flow. */
+.bar { position: sticky; top: 0; background: #ff0000; height: 16px; width: 100%; }
+.pad { height: 40px; background: #eeeeee; }
+</style></head><body>
+<div class="pad">above</div>
+<div class="bar">sticky</div>
+<div class="pad">below</div>
+</body></html>

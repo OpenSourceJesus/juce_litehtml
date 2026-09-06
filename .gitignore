@@ -33,3 +33,9 @@
 
 # Ahead-of-time wasm modules (built from wasm/src/ by build.py)
 wasm/modules/*.wasm
+
+# local AI agent tooling (ponytail / caveman / graphify)
+.agents/
+.cursor/
+skills-lock.json
+graphify-out/

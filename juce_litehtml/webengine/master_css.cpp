@@ -322,7 +322,7 @@ input[type="hidden"] {
 }
 
 
-article, aside, footer, header, hgroup, nav, section
+article, aside, footer, header, hgroup, main, nav, section
 {
 	display: block;
 }

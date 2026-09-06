@@ -249,6 +249,17 @@ litehtml::web_color litehtml::element::get_color( const tchar_t* prop_name, bool
 	{
 		return def_color;
 	}
+	/* currentColor is the used value of `color`, not a named RGB. Without
+	   this, from_string fails (or a container invents black) and masked
+	   icon boxes paint solid. */
+	if(!t_strcasecmp(clrstr, _t("currentcolor")))
+	{
+		if(prop_name && !t_strcasecmp(prop_name, _t("color")))
+		{
+			return def_color;
+		}
+		return get_color(_t("color"), true, def_color);
+	}
 	return web_color::from_string(clrstr, get_document()->container());
 }
 

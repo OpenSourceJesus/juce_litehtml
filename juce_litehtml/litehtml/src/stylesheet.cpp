@@ -125,7 +125,10 @@ bool litehtml::css::parse_selectors( const tstring& txt, const tstring& styles, 
 	tstring selector = txt;
 	trim(selector);
 	string_vector tokens;
-	split_string(selector.c_str(), tokens, _t(","));
+	/* Do not split on commas inside (), [] or {} — otherwise
+	   `:is(p,table,…)` becomes a bare `table` selector and Vector's
+	   collapsible rules hide every table on the page. */
+	split_string(selector.c_str(), tokens, _t(","), _t(""), _t("([{"));
 
 	bool added_something = false;
 
