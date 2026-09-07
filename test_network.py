@@ -113,6 +113,45 @@ class Handler(http.server.BaseHTTPRequestHandler):
                          b"<p>first</p>", b"<p>second</p>", b"</body></html>"):
                 self.wfile.write(b"%x\r\n" % len(part) + part + b"\r\n")
             self.wfile.write(b"0\r\n\r\n")
+        elif p == "/rate.html":
+            # First hit 429 with Retry-After: 1; then serve. Exercises retry
+            # and ensures a transient miss is not cached as permanent failure.
+            n = getattr(self.server, "rate_hits", 0)
+            self.server.rate_hits = n + 1
+            if n == 0:
+                self.send_response(429)
+                self.send_header("Retry-After", "1")
+                self.send_header("Content-Length", "0")
+                self.end_headers()
+            else:
+                body = b"<html><head><title>Rate</title></head>" \
+                       b"<body><p>after-retry</p></body></html>"
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+        elif p == "/rate-img.html":
+            body = (b"<html><body><img src='/rate.png' width='64' height='32'>"
+                    b"</body></html>")
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+        elif p == "/rate.png":
+            n = getattr(self.server, "rate_png_hits", 0)
+            self.server.rate_png_hits = n + 1
+            if n == 0:
+                self.send_response(429)
+                self.send_header("Retry-After", "1")
+                self.end_headers()
+            else:
+                self.send_response(200)
+                self.send_header("Content-Type", "image/png")
+                self.send_header("Content-Length", str(len(PNG)))
+                self.end_headers()
+                self.wfile.write(PNG)
         elif p in PAGES:
             code, ctype, body = PAGES[p]
             self.send_response(code)
@@ -193,6 +232,14 @@ def main():
     rc, out, err = run(["--net", f"{base}/gzipped.html", "-m", "draw"])
     check("uses variables from a gzipped stylesheet", "#3366cc" in out,
           out.strip()[:120])
+
+    rc, out, err = run(["--net", f"{base}/rate.html", "-m", "text"])
+    check("retries after HTTP 429",
+          rc == 0 and "after-retry" in out, (out + err).strip()[:120])
+
+    rc, out, err = run(["--net", f"{base}/rate-img.html", "-m", "draw"])
+    check("retries image after 429 (not cached as fail)",
+          "64x32" in out, (out + err).strip()[:200])
 
     if args.tls:
         rc, out, err = run(["--net", args.tls, "-m", "stats"])

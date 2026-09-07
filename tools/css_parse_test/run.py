@@ -116,6 +116,14 @@ def test_mp_columns() -> None:
         raise AssertionError(f"In the news not to the right of featured: {lx} vs {rx}")
 
 
+def test_pct_img() -> None:
+    """Percent-encoded img src (Wikimedia Boar%27s style) must resolve + size."""
+    out = run("draw", 200, FIX / "pct_img.html")
+    # Image paint: transparent fill carrying a URL that still names the file
+    must(out, r'background \([^)]*\) #00000000 ".*Boar', "pct-encoded img painted")
+    must(out, r"80x60", "img box sized")
+
+
 TESTS = [
     ("colors", test_colors),
     ("is_comma", test_is_comma),
@@ -123,6 +131,7 @@ TESTS = [
     ("braces", test_braces),
     ("sticky", test_sticky),
     ("mp_columns", test_mp_columns),
+    ("pct_img", test_pct_img),
 ]
 
 

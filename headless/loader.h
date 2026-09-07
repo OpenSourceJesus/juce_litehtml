@@ -74,6 +74,12 @@ private:
     int timeoutSeconds;
     int maxRedirects;
     int maxBytes;
+    /** 1 when last fetch failed with a retryable status (429/503). Those
+        must not be stored as permanent cache misses — Wikimedia and CDNs
+        rate-limit burst image loads; caching the 429 made every later
+        paint of the same URL fail forever in-session.
+     */
+    int transientFailure;
     std::string error;
     std::ownvector<CacheEntry> cache;
 };

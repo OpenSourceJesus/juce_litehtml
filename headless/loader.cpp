@@ -32,6 +32,7 @@ ResourceLoader::ResourceLoader()
     timeoutSeconds = 15;
     maxRedirects = 5;
     maxBytes = 16 * 1024 * 1024;
+    transientFailure = 0;
 }
 
 ResourceLoader::~ResourceLoader()
@@ -98,14 +99,58 @@ void ResourceLoader::storeCached (const char* key, std::string* body, int ok)
 
 //==============================================================================
 
+//==============================================================================
+
+/** Decode %XX sequences in a file path. HTTP request paths must stay encoded;
+    fopen needs the on-disk bytes (Ye_Olde_Boar's.png, not ...%27s.png).
+ */
+static void percentDecodePath (std::string* path)
+{
+    if (path == 0 || path->empty())
+        return;
+
+    std::string out;
+    const char* p = path->c_str();
+    int i = 0;
+
+    while (p[i] != '\0')
+    {
+        if (p[i] == '%' && p[i + 1] != '\0' && p[i + 2] != '\0')
+        {
+            char hex[3];
+            hex[0] = p[i + 1];
+            hex[1] = p[i + 2];
+            hex[2] = '\0';
+
+            char* end = 0;
+            const long v = strtol (hex, &end, 16);
+
+            if (end == hex + 2 && v >= 0 && v <= 255)
+            {
+                out.push_back ((char) v);
+                i = i + 3;
+                continue;
+            }
+        }
+
+        out.push_back (p[i]);
+        i = i + 1;
+    }
+
+    *path = out;
+}
+
 int ResourceLoader::fetchFile (Url* url, std::string* body)
 {
-    FILE* f = fopen (url->path.c_str(), "rb");
+    std::string path = url->path;
+    percentDecodePath (&path);
+
+    FILE* f = fopen (path.c_str(), "rb");
 
     if (f == 0)
     {
         error.assign ("cannot open ");
-        error.append (url->path.c_str());
+        error.append (path.c_str());
         return 0;
     }
 
@@ -530,12 +575,12 @@ int ResourceLoader::fetchHttp (Url* url, std::string* body, Url* finalUrl, int d
         }
     }
 
-    // A conventional User-Agent token: some large sites answer 403 to
-    // anything that does not look like a browser, and being refused outright
-    // is a worse failure than rendering imperfectly.
-    request.append ("\r\nUser-Agent: Mozilla/5.0 (X11; Linux x86_64) "
-                    "litehtml-headless/1.0\r\n");
-    request.append ("Accept: text/html,application/xhtml+xml,*/*\r\n");
+    // Wikimedia (and others) rate-limit or block generic/spoofed Mozilla
+    // User-Agents. Identify the client and point at the project page.
+    // See: https://foundation.wikimedia.org/wiki/Policy:Wikimedia_Foundation_User-Agent_Policy
+    request.append ("\r\nUser-Agent: juce_litehtml-headless/1.0 "
+                    "(+https://github.com/crustos/juce_litehtml)\r\n");
+    request.append ("Accept: */*\r\n");
     request.append ("Accept-Encoding: gzip, deflate, identity\r\n");
     request.append ("Connection: close\r\n\r\n");
 
@@ -711,6 +756,44 @@ int ResourceLoader::fetchHttp (Url* url, std::string* body, Url* finalUrl, int d
         return fetchHttp (&next, body, finalUrl, depth + 1);
     }
 
+    if (status == 429 || status == 503)
+    {
+        // Rate limit / temporary unavailable: honour Retry-After (capped),
+        // retry within the same redirect budget, and mark transient so the
+        // miss is not cached as permanent.
+        if (depth >= maxRedirects)
+        {
+            transientFailure = 1;
+            error.assign ("http ");
+            strAppendInt (&error, status);
+            error.append (" for ");
+
+            std::string text;
+            url->toString (&text);
+            error.append (text.c_str());
+
+            return 0;
+        }
+
+        int waitSec = 1;
+        std::string retryAfter;
+
+        if (headerValue (h, "Retry-After", &retryAfter) != 0)
+        {
+            // Numeric seconds only; HTTP-date form is rare and ignored.
+            const int parsed = atoi (retryAfter.c_str());
+
+            if (parsed > 0)
+                waitSec = parsed;
+        }
+
+        if (waitSec > 5)
+            waitSec = 5;
+
+        sleep ((unsigned) waitSec);
+        return fetchHttp (url, body, finalUrl, depth + 1);
+    }
+
     if (status < 200 || status > 299)
     {
         error.assign ("http ");
@@ -741,6 +824,7 @@ int ResourceLoader::fetch (Url* url, std::string* body, Url* finalUrl)
 
     error.clear();
     body->clear();
+    transientFailure = 0;
 
     if (finalUrl != 0)
         *finalUrl = *url;
@@ -782,7 +866,10 @@ int ResourceLoader::fetch (Url* url, std::string* body, Url* finalUrl)
         ok = fetchFile (url, body);
     }
 
-    storeCached (key.c_str(), body, ok);
+    // ponytail: 429/503 are temporary — caching them as permanent misses
+    // blanked Wikipedia Main Page thumbs after the first rate-limit hit.
+    if (ok != 0 || transientFailure == 0)
+        storeCached (key.c_str(), body, ok);
 
     if (ok == 0)
         body->clear();
